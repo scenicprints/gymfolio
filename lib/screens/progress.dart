@@ -332,7 +332,7 @@ class _SessionRow extends StatelessWidget {
               for (final entry in session.painDuring.entries) ...[
                 SideChip(entry.key, size: 17),
                 const SizedBox(width: 4),
-                Text('${entry.value.toStringAsFixed(0)}',
+                Text(entry.value.toStringAsFixed(0),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,

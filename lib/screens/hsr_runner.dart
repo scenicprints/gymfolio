@@ -318,7 +318,7 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
                       else ...[
                         SideChip(side, size: 20),
                         const SizedBox(width: 6),
-                        Text('${p.loads[side]?.toStringAsFixed(1) ?? '—'}',
+                        Text(p.loads[side]?.toStringAsFixed(1) ?? '—',
                             style: const TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.w700)),
                         const SizedBox(width: 14),

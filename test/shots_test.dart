@@ -3,7 +3,6 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -63,7 +62,8 @@ void stubAssets() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final raw =
       File('assets/programs/biceps_tendinopathy.json').readAsBytesSync();
-  ServicesBinding.instance.defaultBinaryMessenger.setMockMessageHandler(
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMessageHandler(
     'flutter/assets',
     (ByteData? message) async {
       final key = utf8.decode(message!.buffer.asUint8List());
