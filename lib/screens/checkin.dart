@@ -53,7 +53,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Morning check-in')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + Insets.bottomOf(context)),
         children: [
           Panel(
             padding: const EdgeInsets.all(14),

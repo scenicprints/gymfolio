@@ -84,7 +84,7 @@ class _EditBodyState extends State<_EditBody> {
 
     return ListView(
       controller: widget.controller,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 32 + Insets.bottomOf(context)),
       children: [
         Row(
           children: [

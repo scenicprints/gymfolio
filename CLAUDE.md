@@ -36,6 +36,10 @@ Dart, put it in the JSON instead.
 - **Pick the view that can show the thing.** Supination is invisible from the
   side, so those movements are drawn end-on down the forearm. An isometric hold
   has nothing to animate, so the force arrows pulse instead of the limb.
+- **Show the hand.** Grip is the content in a supination program. The end-on
+  hand glyph is asymmetric on purpose so the roll reads without a caption, and
+  the side-on views carry a labelled grip inset because from the side you
+  cannot see the grip at all. `gripFor(id, cue:)` follows this week's cue.
 - **`simplified: true` is thumbnail mode** and must stay cheap to read: no
   scenery, no path arcs, no inset diagrams. If you add a decorative element,
   guard it.
@@ -61,6 +65,23 @@ semantic set (good / hold / bad) or `accent`.
 
 Fonts are bundled from `assets/fonts` under the SIL OFL. Keep `OFL.txt` with
 them.
+
+## System insets
+
+Android 15 forces edge-to-edge: the gesture bar is drawn **on top of** the app.
+Any bottom-anchored control must add `Insets.bottomOf(context)`, and any
+scroll view must add it to its bottom padding.
+
+- Use `viewPadding`, not `padding` — `padding` collapses to zero once an
+  enclosing `SafeArea` has consumed the inset, and screens inside a Scaffold
+  body usually are inside one.
+- For a bottom bar, the `SafeArea` goes **inside** the coloured container, not
+  around it. Around it pads the bar away from the strip and leaves a band of
+  scaffold showing.
+- `test/insets_test.dart` injects a 48px gesture bar and asserts nothing
+  pressable lands under it. Add a case when you add a bottom-anchored control.
+  This bug looks perfect in a screenshot, which is how it shipped the first
+  time.
 
 ## Session hardware
 

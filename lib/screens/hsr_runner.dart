@@ -326,7 +326,7 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
   Widget _warmup(AppModel model) {
     final phase = model.engine!.phase;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+      padding: EdgeInsets.fromLTRB(18, 14, 18, 28 + Insets.bottomOf(context)),
       children: [
         const SectionLabel('Warm-up'),
         Panel(
@@ -422,7 +422,7 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
     final load = _loadOf(t, model);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
+      padding: EdgeInsets.fromLTRB(18, 10, 18, 22 + Insets.bottomOf(context)),
       child: Column(
         children: [
           Panel(
@@ -702,7 +702,7 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
       (byEx[s.exerciseId] ??= []).add(s);
     }
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+      padding: EdgeInsets.fromLTRB(18, 18, 18, 28 + Insets.bottomOf(context)),
       children: [
         const Icon(Icons.check_circle, color: Tone.good, size: 46),
         const SizedBox(height: 10),

@@ -32,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final r = s.reminders;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 28 + Insets.bottomOf(context)),
       children: [
         const SectionLabel('Reminders'),
         Panel(

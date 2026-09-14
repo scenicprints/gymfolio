@@ -27,6 +27,8 @@ import 'package:gymfolio/screens/today.dart';
 import 'package:gymfolio/state.dart';
 import 'package:gymfolio/theme.dart';
 
+import 'test_fonts.dart';
+
 /// A screenshot harness. Green tests are not evidence that a screen is usable,
 /// so this renders the real widgets at phone size and writes PNGs to
 /// build/shots/ where they can actually be looked at.
@@ -210,44 +212,10 @@ AppState phase2State() {
   return s;
 }
 
-/// flutter_test ships a placeholder font that draws every glyph as a solid
-/// box roughly twice the width of real text, which invents overflows that do
-/// not exist on a phone. Register a real face so the geometry in these shots
-/// is the geometry you will actually get.
-Future<void> loadRealFont() async {
-  Future<void> reg(String family, List<String> files) async {
-    final loader = FontLoader(family);
-    var any = false;
-    for (final f in files) {
-      final file = File('assets/fonts/$f');
-      if (!file.existsSync()) continue;
-      any = true;
-      loader.addFont(Future.value(
-          ByteData.view(Uint8List.fromList(file.readAsBytesSync()).buffer)));
-    }
-    if (any) await loader.load();
-  }
-
-  await reg('Barlow', [
-    'Barlow-Regular.ttf',
-    'Barlow-Medium.ttf',
-    'Barlow-SemiBold.ttf',
-    'Barlow-Bold.ttf',
-  ]);
-  await reg('BarlowCondensed', [
-    'BarlowCondensed-Medium.ttf',
-    'BarlowCondensed-SemiBold.ttf',
-    'BarlowCondensed-Bold.ttf',
-  ]);
-  // Anything that slips through to the default family still needs a real face,
-  // or flutter_test draws boxes twice the width of real text.
-  await reg('Roboto', ['Barlow-Regular.ttf']);
-}
-
 void main() {
   SessionHw.enabled = false;
   setUp(stubAssets);
-  setUpAll(loadRealFont);
+  setUpAll(loadAppFonts);
 
   testWidgets('today - phase 1', (tester) async {
     tester.view.physicalSize = _size * 2;
@@ -580,5 +548,50 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
     }
     await shoot(tester, '16-update-sheet');
+  });
+
+  testWidgets('home shell with an Android gesture bar', (tester) async {
+    tester.view.devicePixelRatio = 2.0;
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.viewPadding = const FakeViewPadding(bottom: 96);
+    tester.view.padding = const FakeViewPadding(bottom: 96);
+    addTearDown(tester.view.reset);
+
+    final model = modelWith(phase2State());
+    await tester.pumpWidget(RepaintBoundary(
+      key: const ValueKey('shot'),
+      child: AppScope(
+        notifier: model,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(),
+          home: Scaffold(
+            body: const SafeArea(bottom: false, child: TodayScreen()),
+            bottomNavigationBar: Container(
+              color: Tone.surface,
+              child: SafeArea(
+                top: false,
+                child: NavigationBar(
+                  selectedIndex: 0,
+                  height: 64,
+                  onDestinationSelected: (_) {},
+                  destinations: const [
+                    NavigationDestination(
+                        icon: Icon(Icons.today), label: 'Today'),
+                    NavigationDestination(
+                        icon: Icon(Icons.show_chart), label: 'Progress'),
+                    NavigationDestination(
+                        icon: Icon(Icons.menu_book), label: 'Program'),
+                    NavigationDestination(
+                        icon: Icon(Icons.settings), label: 'Settings'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await shoot(tester, '17-gesture-bar');
   });
 }

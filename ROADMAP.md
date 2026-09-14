@@ -57,6 +57,8 @@ assets/programs/biceps_tendinopathy.json   the program document
 tool/prepare_android.sh                    regenerates + patches android/
 tool/make_icon.py                          draws the launcher icon
 test/engine_test.dart                      33 tests over the decision rules
+test/insets_test.dart                      the gesture bar must never cover a button
+test/test_fonts.dart                       register the real faces in any layout test
 test/shots_test.dart                       renders every screen to build/shots/
 ```
 
@@ -218,13 +220,43 @@ Engine tests: 33.
   nearest Material ancestor, so every `ListTile` inside a panel — the whole of
   Settings — was silently swallowing its own tap feedback.
 
-### Next — v0.5.0 (nothing started)
+### Shipped — v0.5.0
+
+- **The Android gesture bar is accounted for.** It was not, and it should never
+  have shipped that way: Android 15 forces edge-to-edge, so the gesture bar is
+  drawn *on top of* the app, and the runners' Start / Pause / End buttons sat
+  under it. The nav bar was wrong too — `SafeArea` was wrapped *around* it,
+  which pads the bar away from the strip instead of letting its colour fill it.
+  - `Insets.bottomOf(context)` in `theme.dart`, using `viewPadding` (not
+    `padding`, which collapses to zero once an enclosing SafeArea has consumed
+    it), added to every bottom-anchored surface.
+  - Edge-to-edge is now requested deliberately with transparent system bars.
+  - **`test/insets_test.dart` guards it.** It injects a 48px gesture inset and
+    asserts nothing you have to press ends up underneath — verified to fail
+    against the old code ("Start set runs to 822.0, under the bar at 796.0").
+    CI runs it.
+- **You can see what your hands should do.** The old fist was symmetric, so it
+  carried no information — which is fatal for a program whose whole point is
+  supination.
+  - A proper hand seen end-on: back, knuckles, four fingers and a thumb, drawn
+    *asymmetrically* so the roll reads on its own. Palm-down and palm-up are
+    now different pictures rather than the same blob at a different angle.
+  - The side-on views (both curls, the isometric hold) gained a **grip inset** —
+    a boxed hand at the correct roll, labelled PALM UP / THUMB UP / PALM DOWN,
+    because from the side the grip is simply invisible.
+  - The grip follows the program: `gripFor(id, cue:)` reads this week's cue, so
+    the incline curl is drawn thumb-up while the cue says neutral and palm-up
+    once it says supinated.
+  - On-canvas labels on the rotation views, and their captions changed to stop
+    repeating what the label already says.
+- **Shared `test/test_fonts.dart`**, since any test that asserts layout has to
+  register the real faces first.
+
+### Next — v0.6.0 (nothing started)
 
 - [ ] **Physio export.** A readable one-page summary (the program's own
       tracking-log table) rather than raw JSON.
-- [ ] **Backup that survives the phone.** Export is manual today. Consider a
-      private `gymfolio-data` repo, matching the pattern used by bodycomp and
-      fuelwise.
+- [ ] **Backup that survives the phone.** Export is manual today.
 - [ ] **Edit a check-in**, not just a session.
 
 ### Later

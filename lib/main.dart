@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'screens/onboarding.dart';
@@ -11,6 +12,18 @@ import 'update_checker.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Android 15 forces edge-to-edge whether you ask for it or not, so ask for
+  // it deliberately and make the system bars transparent. Every screen then
+  // has to deal with the insets itself — see `Insets` below.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarContrastEnforced: false,
+  ));
   final model = AppModel();
   runApp(GymFolioApp(model: model));
   model.boot();
@@ -126,31 +139,37 @@ class _HomeState extends State<_Home> {
     ];
 
     return Scaffold(
+      // The bar's own colour fills the gesture strip; SafeArea sits INSIDE it
+      // so the destinations lift clear of the strip without leaving a band of
+      // scaffold showing underneath. Putting SafeArea outside is the bug.
       body: SafeArea(bottom: false, child: pages[_tab]),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: NavigationBar(
-          selectedIndex: _tab,
-          height: 64,
-          onDestinationSelected: (i) => setState(() => _tab = i),
-          destinations: const [
-            NavigationDestination(
-                icon: Icon(Icons.today_outlined),
-                selectedIcon: Icon(Icons.today),
-                label: 'Today'),
-            NavigationDestination(
-                icon: Icon(Icons.show_chart_outlined),
-                selectedIcon: Icon(Icons.show_chart),
-                label: 'Progress'),
-            NavigationDestination(
-                icon: Icon(Icons.menu_book_outlined),
-                selectedIcon: Icon(Icons.menu_book),
-                label: 'Program'),
-            NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: 'Settings'),
-          ],
+      bottomNavigationBar: Container(
+        color: Tone.surface,
+        child: SafeArea(
+          top: false,
+          child: NavigationBar(
+            selectedIndex: _tab,
+            height: 64,
+            onDestinationSelected: (i) => setState(() => _tab = i),
+            destinations: const [
+              NavigationDestination(
+                  icon: Icon(Icons.today_outlined),
+                  selectedIcon: Icon(Icons.today),
+                  label: 'Today'),
+              NavigationDestination(
+                  icon: Icon(Icons.show_chart_outlined),
+                  selectedIcon: Icon(Icons.show_chart),
+                  label: 'Progress'),
+              NavigationDestination(
+                  icon: Icon(Icons.menu_book_outlined),
+                  selectedIcon: Icon(Icons.menu_book),
+                  label: 'Program'),
+              NavigationDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: 'Settings'),
+            ],
+          ),
         ),
       ),
     );

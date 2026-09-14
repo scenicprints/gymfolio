@@ -23,6 +23,26 @@ Offset _polar(Offset from, double deg, double r) =>
 
 double _lerp(double a, double b, double t) => a + (b - a) * t;
 
+/// How the hand is turned. The single thing the first version of this art
+/// failed to communicate, and the one that matters most here: supination IS
+/// the movement.
+enum Grip { palmUp, palmDown, thumbUp }
+
+/// The grip a movement is done with, given the cue in force this week.
+/// The incline curl starts neutral and moves to supinated around week 5, so
+/// the picture has to follow the program rather than pick one and stick.
+Grip gripFor(String id, {String? cue}) {
+  final c = (cue ?? '').toLowerCase();
+  if (c.contains('neutral')) return Grip.thumbUp;
+  if (c.contains('supinat')) return Grip.palmUp;
+  return switch (id) {
+    'incline-curl' => Grip.palmUp,
+    'bar-curl' => Grip.palmUp,
+    'iso-flexion' => Grip.thumbUp,
+    _ => Grip.palmUp,
+  };
+}
+
 /// Which view of the movement reads clearest, and what the figure is doing.
 enum MovementView { sideCurl, inclineCurl, endOnRotation, isoPress, isoHammer }
 
@@ -40,9 +60,9 @@ String captionFor(String id, double t) => switch (id) {
       'incline-curl' =>
         t < 0.5 ? 'Bottom — biceps on stretch' : 'Top — squeeze, then lower slow',
       'bar-curl' => t < 0.5 ? 'Bottom — full supination' : 'Top — elbows still',
-      'screwdriver' => t < 0.5 ? 'Palm down' : 'Palm up',
+      'screwdriver' => 'Elbow pinned to your side — only the forearm turns',
       'iso-flexion' => 'Push up into something immovable',
-      'iso-supination' => 'Rotate toward palm-up and hold',
+      'iso-supination' => 'Hold it there; do not let it drop back',
       _ => '',
     };
 
@@ -53,6 +73,9 @@ class MovementPainter extends CustomPainter {
   final Color body;
   final Color accent;
   final Color muted;
+
+  /// How the hand is turned, for the views where that is not self-evident.
+  final Grip grip;
 
   /// Thumbnail mode: drop the scenery, the path arcs and the inset diagrams.
   /// At 46 pixels a chair and a dotted arc are noise, and the pose is the only
@@ -66,6 +89,7 @@ class MovementPainter extends CustomPainter {
     this.accent = Tone.accent,
     this.muted = Tone.line,
     this.simplified = false,
+    this.grip = Grip.palmUp,
   });
 
   // ------------------------------------------------------------- primitives
@@ -185,6 +209,9 @@ class MovementPainter extends CustomPainter {
     _limb(c, elbow, hand, 9, body);
     _dot(c, elbow, 5.5, accent);
     _barbell(c, hand);
+
+    // From the side you cannot see the grip at all, so show it separately.
+    if (!simplified) _gripInset(c, const Offset(4, 6), grip);
   }
 
   void _paintInclineCurl(Canvas c) {
@@ -227,64 +254,165 @@ class MovementPainter extends CustomPainter {
     _limb(c, elbow, hand, 9, body);
     _dot(c, elbow, 5.5, accent);
     _dumbbell(c, hand, ang + 90);
+
+    if (!simplified) _gripInset(c, const Offset(4, 6), grip);
   }
 
-  /// A fist gripping a handle, drawn in the rotated frame so the hand turns
-  /// with the forearm. Without the hand it reads as a knob on a stick.
-  void _fistAndHandle(
+  /// Text on the canvas. The figures are only half the answer — "which way is
+  /// my palm" needs saying in words as well as drawing.
+  void _text(Canvas c, Offset at, String s,
+      {double size = 9, Color? color, bool centre = true}) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: s,
+        style: TextStyle(
+          fontFamily: kDisplay,
+          fontSize: size,
+          height: 1.0,
+          letterSpacing: 1.0,
+          fontWeight: FontWeight.w700,
+          color: color ?? muted.withValues(alpha: 1),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(c, centre ? at - Offset(tp.width / 2, tp.height / 2) : at);
+  }
+
+  /// A hand seen end-on down the forearm, gripping a handle.
+  ///
+  /// [roll] is the forearm's rotation: 0 is palm-down, 180 is palm-up. The
+  /// glyph is deliberately ASYMMETRIC — fingers and thumb on the palm side,
+  /// knuckles on the back — so the roll reads on its own without a caption.
+  /// A symmetric fist tells you nothing, which is what the first version did.
+  void _handEndOn(
     Canvas c,
     Offset centre,
-    double angDeg, {
-    required bool hammer,
+    double roll, {
+    double s = 1.0,
+    void Function(Canvas)? implement,
   }) {
     c.save();
     c.translate(centre.dx, centre.dy);
-    c.rotate(_rad(angDeg));
+    c.rotate(_rad(roll));
+    c.scale(s);
 
-    // Handle through the fist.
-    _limb(c, const Offset(-26, 0), Offset(hammer ? 44 : 50, 0), 6, body);
+    final skin = body;
+    final shade = Tone.bg.withValues(alpha: 0.38);
 
-    // Fist.
-    final fist = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset.zero, width: 40, height: 34),
-      const Radius.circular(11),
+    // Back of the hand — the flat side. Faces away from the palm.
+    c.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: const Offset(0, -7), width: 40, height: 22),
+        const Radius.circular(7),
+      ),
+      Paint()..color = skin.withValues(alpha: 0.95),
     );
-    c.drawRRect(fist, Paint()..color = body.withValues(alpha: 0.92));
-    // Knuckle creases, so it is unmistakably a hand.
-    for (final x in [-9.0, 1.0, 11.0]) {
+    // Knuckles, so the back of the hand is identifiable as the back.
+    for (final x in [-13.0, -4.5, 4.0, 12.5]) {
+      c.drawCircle(Offset(x, -17), 3.6, Paint()..color = skin);
+    }
+
+    // Fingers curling round to the palm side.
+    for (final x in [-13.0, -4.5, 4.0, 12.5]) {
+      c.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset(x, 4), width: 7.4, height: 20),
+          const Radius.circular(3.6),
+        ),
+        Paint()..color = skin.withValues(alpha: 0.85),
+      );
       c.drawLine(
-        Offset(x, -13),
-        Offset(x, 4),
+        Offset(x - 3.7, 4),
+        Offset(x + 3.7, 4),
         Paint()
-          ..color = Tone.bg.withValues(alpha: 0.35)
-          ..strokeWidth = 2.4
-          ..strokeCap = StrokeCap.round,
+          ..color = shade
+          ..strokeWidth = 1.6,
       );
     }
 
-    if (hammer) {
-      // Head sits across the end of the handle, offset to one side.
+    // The thumb. This is the single most useful mark on the whole figure —
+    // it is how you tell palm-up from palm-down at a glance.
+    c.save();
+    c.translate(-19, 6);
+    c.rotate(_rad(28));
+    c.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset.zero, width: 20, height: 10),
+        const Radius.circular(5),
+      ),
+      Paint()..color = skin,
+    );
+    c.restore();
+
+    implement?.call(c);
+    c.restore();
+  }
+
+  /// A dumbbell held by one end, drawn in the hand's local frame.
+  void _handleWithPlates(Canvas c) {
+    _limb(c, const Offset(-30, 0), const Offset(52, 0), 6.5, body);
+    for (final d in [const Offset(46, 0), const Offset(56, 0)]) {
       c.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromCenter(center: const Offset(46, -5), width: 15, height: 32),
-          const Radius.circular(4),
+          Rect.fromCenter(center: d, width: 8, height: d.dx == 46 ? 34 : 24),
+          const Radius.circular(3),
         ),
         Paint()..color = accent,
       );
-    } else {
-      // Two plates on one end only — that is what makes it a supination lift.
-      for (final d in [const Offset(46, 0), const Offset(55, 0)]) {
-        c.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromCenter(
-                center: d, width: 8, height: d.dx == 46 ? 34 : 24),
-            const Radius.circular(3),
-          ),
-          Paint()..color = accent,
-        );
-      }
     }
-    c.restore();
+  }
+
+  /// A hammer, likewise.
+  void _handleWithHead(Canvas c) {
+    _limb(c, const Offset(-28, 0), const Offset(44, 0), 6, body);
+    c.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: const Offset(46, -5), width: 15, height: 32),
+        const Radius.circular(4),
+      ),
+      Paint()..color = accent,
+    );
+  }
+
+  /// A boxed "this is what your hand looks like" for the side-on views, where
+  /// the grip is otherwise invisible.
+  void _gripInset(Canvas c, Offset topLeft, Grip grip) {
+    const w = 62.0, h = 66.0;
+    final box = RRect.fromRectAndRadius(
+      Rect.fromLTWH(topLeft.dx, topLeft.dy, w, h),
+      const Radius.circular(9),
+    );
+    c.drawRRect(box, Paint()..color = Tone.bg.withValues(alpha: 0.85));
+    c.drawRRect(
+      box,
+      Paint()
+        ..color = muted
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4,
+    );
+
+    final centre = Offset(topLeft.dx + w / 2, topLeft.dy + h / 2 - 4);
+    final roll = switch (grip) {
+      Grip.palmUp => 180.0,
+      Grip.palmDown => 0.0,
+      Grip.thumbUp => 90.0,
+    };
+    _handEndOn(c, centre, roll, s: 0.44, implement: (cc) {
+      _limb(cc, const Offset(-34, 0), const Offset(34, 0), 6, muted);
+    });
+
+    _text(
+      c,
+      Offset(topLeft.dx + w / 2, topLeft.dy + h - 9),
+      switch (grip) {
+        Grip.palmUp => 'PALM UP',
+        Grip.palmDown => 'PALM DOWN',
+        Grip.thumbUp => 'THUMB UP',
+      },
+      size: 8.5,
+      color: Tone.dim,
+    );
   }
 
   /// The "elbow stays at ninety, pinned to your ribs" reminder, boxed so it
@@ -331,14 +459,19 @@ class MovementPainter extends CustomPainter {
     // Rotation sweep, palm-down through to palm-up.
     _arcPath(c, centre, 62, 176, 4);
 
+    // 180 is palm-up, 0 is palm-down, and the hand rolls between them.
     final ang = _lerp(180, 0, t);
-    _fistAndHandle(c, centre, ang, hammer: false);
+    _handEndOn(c, centre, ang, implement: _handleWithPlates);
 
     // Direction of travel.
     _arrow(c, _polar(centre, 152, 80), _polar(centre, 122, 80),
         accent.withValues(alpha: 0.85), head: 8);
 
-    _elbowInset(c, const Offset(136, 152));
+    if (!simplified) {
+      _text(c, const Offset(100, 16), t < 0.5 ? 'PALM DOWN' : 'PALM UP',
+          size: 12, color: t < 0.5 ? Tone.dim : accent);
+    }
+    _elbowInset(c, const Offset(140, 146));
   }
 
   void _paintIsoPress(Canvas c) {
@@ -385,6 +518,10 @@ class MovementPainter extends CustomPainter {
       _arrow(c, Offset(x, 104), Offset(x, 92),
           accent.withValues(alpha: pulse.clamp(0.25, 1.0)));
     }
+
+    // Thumb-up unless palm-up is tolerable — the doc is explicit, and from
+    // the side you cannot tell which you are looking at.
+    if (!simplified) _gripInset(c, const Offset(4, 6), grip);
   }
 
   void _paintIsoHammer(Canvas c) {
@@ -407,15 +544,21 @@ class MovementPainter extends CustomPainter {
 
     // Neutral through to palm-up is about a quarter turn, then you hold.
     _arcPath(c, centre, 60, 96, 20);
+    // Starts near neutral and rolls toward palm-up, which is the whole ask.
     final ang = _lerp(95, 22, t);
-    _fistAndHandle(c, centre, ang, hammer: true);
+    _handEndOn(c, centre, ang, implement: _handleWithHead);
 
     // Gravity acts on the head wherever the head happens to be.
     final head = _polar(centre, ang, 52);
     _arrow(c, head + const Offset(0, 16), head + const Offset(0, 40),
         Tone.dim, head: 6);
 
-    _elbowInset(c, const Offset(20, 158));
+    if (!simplified) {
+      _text(c, const Offset(100, 16),
+          t < 0.5 ? 'TOWARD PALM UP' : 'PALM UP — HOLD',
+          size: 12, color: t < 0.5 ? Tone.dim : accent);
+    }
+    _elbowInset(c, const Offset(14, 146));
   }
 
   @override
@@ -444,7 +587,8 @@ class MovementPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(MovementPainter old) => old.t != t || old.view != view;
+  bool shouldRepaint(MovementPainter old) =>
+      old.t != t || old.view != view || old.grip != grip;
 }
 
 /// The animated figure. Runs at the movement's real tempo — three seconds up,
@@ -456,6 +600,10 @@ class MovementDemo extends StatefulWidget {
   final bool playing;
   final double height;
 
+  /// This week's cue, so the drawn grip follows the program rather than
+  /// guessing — the incline curl is neutral early and supinated later.
+  final String? cue;
+
   const MovementDemo({
     super.key,
     required this.movementId,
@@ -463,6 +611,7 @@ class MovementDemo extends StatefulWidget {
     this.downSeconds = 3,
     this.playing = true,
     this.height = 190,
+    this.cue,
   });
 
   @override
@@ -535,6 +684,7 @@ class _MovementDemoState extends State<MovementDemo>
                   painter: MovementPainter(
                     t: t,
                     view: viewFor(widget.movementId),
+                    grip: gripFor(widget.movementId, cue: widget.cue),
                   ),
                   size: Size.infinite,
                 ),

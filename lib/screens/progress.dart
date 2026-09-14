@@ -22,7 +22,7 @@ class ProgressScreen extends StatelessWidget {
     final sessions = s.sessions.reversed.toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 28 + Insets.bottomOf(context)),
       children: [
         const SectionLabel('The block'),
         Panel(child: _WeekLadder(totalWeeks: totalWeeks)),

@@ -200,6 +200,24 @@ ThemeData buildTheme() {
   );
 }
 
+/// System bar insets, in one place.
+///
+/// Android 15 forces edge-to-edge, so the gesture bar sits ON TOP of the app
+/// unless every screen accounts for it. A bottom-anchored button that ignores
+/// this is unreachable, which is the worst kind of bug: it looks fine in a
+/// screenshot.
+///
+/// `viewPadding` rather than `padding`, because `padding` collapses to zero
+/// once a SafeArea above has already consumed the inset — and a screen inside
+/// a Scaffold body often is inside one.
+class Insets {
+  static double bottomOf(BuildContext context) =>
+      MediaQuery.viewPaddingOf(context).bottom;
+
+  static double topOf(BuildContext context) =>
+      MediaQuery.viewPaddingOf(context).top;
+}
+
 /// A panel. Optionally with a coloured rail down its left edge, which is how
 /// this app marks a card that means something — a flare, a stop, a thing due.
 class Panel extends StatelessWidget {

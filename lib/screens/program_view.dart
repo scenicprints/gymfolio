@@ -17,7 +17,7 @@ class ProgramScreen extends StatelessWidget {
     final e = model.engine!;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 28 + Insets.bottomOf(context)),
       children: [
         Text(p.name,
             style: const TextStyle(

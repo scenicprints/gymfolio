@@ -208,7 +208,7 @@ class _IsoRunnerScreenState extends State<IsoRunnerScreen> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 6, 18, 22),
+        padding: EdgeInsets.fromLTRB(18, 6, 18, 22 + Insets.bottomOf(context)),
         child: Column(
           children: [
             Row(

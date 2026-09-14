@@ -44,7 +44,7 @@ jobs:
       # The engine decides what weight goes on a bar attached to a sore tendon.
       # A red test blocks the release.
       - name: Test
-        run: flutter test test/engine_test.dart
+        run: flutter test test/engine_test.dart test/insets_test.dart
 
       # The repo tracks lib/, assets/, test/ and pubspec.yaml. android/ is
       # generated here so builds are deterministic and the repo stays clean;

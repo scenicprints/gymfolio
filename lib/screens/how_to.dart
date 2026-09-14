@@ -74,7 +74,7 @@ class _HowToBody extends StatelessWidget {
 
     return ListView(
       controller: controller,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 32 + Insets.bottomOf(context)),
       children: [
         Text(
           title,
@@ -101,6 +101,7 @@ class _HowToBody extends StatelessWidget {
                 upSeconds: upSeconds,
                 downSeconds: downSeconds,
                 height: 210,
+                cue: cue,
               ),
               if (isTempo) ...[
                 const SizedBox(height: 8),

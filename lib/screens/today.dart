@@ -27,7 +27,7 @@ class TodayScreen extends StatelessWidget {
     final resume = e.resumable(now);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+      padding: EdgeInsets.fromLTRB(18, 10, 18, 30 + Insets.bottomOf(context)),
       children: [
         const _Header(),
         const SizedBox(height: 14),
