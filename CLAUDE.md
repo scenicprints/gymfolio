@@ -62,9 +62,10 @@ exists, since that is where the mipmaps are written.
 Regenerating the icon: `python tool/make_icon.py`. Judge it from
 `assets/icon/_launcher_preview.png`, never `icon.png` — the generated adaptive
 XML insets the foreground a further 16% on top of your artwork, and the preview
-simulates that. CI runs the same script — if
-you need a new permission or gradle change, it goes in there, not in a
-committed `android/` file.
+simulates that.
+
+CI runs the same script, so if you need a new permission or a gradle change it
+goes in there, not in a committed `android/` file.
 
 ## Releasing
 

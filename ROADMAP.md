@@ -64,9 +64,9 @@ changing behaviour, you are almost certainly changing `engine.dart` and adding a
 test, not editing a screen.
 
 **`android/` and `web/` are generated and gitignored.** Run
-`bash tool/prepare_android.sh` to recreate the Android project with its three
+`bash tool/prepare_android.sh` to recreate the Android project with its four
 required patches (permissions, launcher label, core-library desugaring for
-`flutter_local_notifications`). CI runs exactly that script, so what you test
+`flutter_local_notifications`, and the launcher icon). CI runs exactly that script, so what you test
 locally is what ships.
 
 ---
@@ -108,7 +108,7 @@ repo; keep it that way and never rotate it.
 - **Program document** — all three phases, both isometric blocks, three
   exercises with laterality and week-dependent cues, the five load blocks, the
   flare spec, restrictions, red flags, timeline.
-- **Onboarding** — the pre-start exam note, baseline capture, phase overview.
+- **Onboarding** — baseline capture and a phase overview.
 - **Morning check-in** — better/same/worse per arm; the one follow-up question
   that separates "repeat the week" from "run the flare protocol"; red-flag
   screen one tap away.
