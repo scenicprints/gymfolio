@@ -222,40 +222,46 @@ class Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget body = Container(
-      width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: fill ?? Tone.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: border ?? Tone.lineSoft),
-      ),
-      child: child,
-    );
+    final radius = BorderRadius.circular(14);
 
-    if (rail != null) {
-      body = ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Stack(
-          children: [
-            body,
+    // A Material, not a decorated Container. Anything inkable inside a panel —
+    // a ListTile, a SwitchListTile, the panel's own tap — paints its ripple on
+    // the nearest Material ancestor, and a plain coloured box hides it. Get
+    // this wrong and rows simply stop responding to the touch, visibly.
+    Widget body = Material(
+      color: fill ?? Tone.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: border ?? Tone.lineSoft),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          if (onTap == null)
+            Padding(
+              padding: padding,
+              child: SizedBox(width: double.infinity, child: child),
+            )
+          else
+            InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: padding,
+                child: SizedBox(width: double.infinity, child: child),
+              ),
+            ),
+          if (rail != null)
             Positioned(
               left: 0,
               top: 0,
               bottom: 0,
-              child: Container(width: 3, color: rail),
+              child: IgnorePointer(child: Container(width: 3, color: rail)),
             ),
-          ],
-        ),
-      );
-    }
-
-    if (onTap == null) return body;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: body,
+        ],
+      ),
     );
+
+    return body;
   }
 }
 

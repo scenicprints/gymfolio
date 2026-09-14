@@ -97,6 +97,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
 
         const SizedBox(height: 20),
+        const SectionLabel('During a session'),
+        Panel(
+          child: Column(
+            children: [
+              SwitchListTile(
+                value: s.soundOn,
+                onChanged: model.setSoundOn,
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: Tone.good,
+                secondary: Icon(
+                  s.soundOn ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+                  color: s.soundOn ? Tone.text : Tone.faint,
+                ),
+                title: const Text('Tempo sound'),
+                subtitle: const Text(
+                  'A tick on the rep and a lower tone on the turnaround, so you '
+                  'can hold tempo without watching the phone. Vibration carries '
+                  'on either way.',
+                  style: TextStyle(color: Tone.faint, fontSize: 12, height: 1.35),
+                ),
+              ),
+              const Divider(height: 18),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, size: 18, color: Tone.dim),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'The screen is kept awake for the whole session, so it '
+                        'will not sleep through a three-minute rest.',
+                        style: TextStyle(color: Tone.dim, fontSize: 12.5, height: 1.35),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
         const SectionLabel('Your log'),
         Panel(
           child: Column(

@@ -195,7 +195,30 @@ so.
 
 Engine tests: 33.
 
-### Next — v0.4.0 (nothing started)
+### Shipped — v0.4.0
+
+- **Mute toggle** for the tempo cue, in Settings under "During a session".
+  Persisted as `soundOn`; haptics carry on regardless. The same panel states
+  that the screen is held awake for the session, since that is otherwise
+  invisible behaviour.
+- **The update path now says what went wrong.** It was reported as failing with
+  an unhelpful error, and the old code could not have told anyone why:
+  - `OpenFilex.open` **returns** a failure result; it does not throw. The old
+    code ignored the return value entirely, so a denied "Install unknown apps"
+    permission produced silence rather than a message. Every `ResultType` is
+    now handled by name, with the fix spelled out for the permission cases.
+  - The HTTP status is checked. GitHub 302s to a signed asset host; if that
+    ever failed, the old code would save the error page as an `.apk` and the
+    installer would say only "problem parsing the package".
+  - The download is verified: byte count against `Content-Length`, and the
+    file must start with a zip header.
+  - A real sheet with a progress bar, the exact error, **Copy the error**, and
+    a **Download in the browser** fallback that always works.
+- **Panel is a Material now, not a decorated box.** Ink splashes paint on the
+  nearest Material ancestor, so every `ListTile` inside a panel — the whole of
+  Settings — was silently swallowing its own tap feedback.
+
+### Next — v0.5.0 (nothing started)
 
 - [ ] **Physio export.** A readable one-page summary (the program's own
       tracking-log table) rather than raw JSON.
@@ -203,8 +226,6 @@ Engine tests: 33.
       private `gymfolio-data` repo, matching the pattern used by bodycomp and
       fuelwise.
 - [ ] **Edit a check-in**, not just a session.
-- [ ] **A volume control for the cues**, and a mute toggle in Settings —
-      `SessionHw.muted` exists but nothing sets it.
 
 ### Later
 

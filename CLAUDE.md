@@ -50,6 +50,10 @@ assertion at runtime.
 `stencil()` for small-caps labels, and the `Readout` / `Pill` / `Panel(rail:)`
 primitives rather than rolling one-off styles.
 
+`Panel` is a `Material`, deliberately. Ink splashes paint on the nearest
+Material ancestor, so a plain decorated `Container` silently eats the tap
+feedback of every `ListTile` inside it. Do not "simplify" it back.
+
 **The colour rule is not decorative:** blue means the left arm and coral means
 the right arm, everywhere. Do not use either for anything else — that is why
 the primary action is near-white. If you need a new highlight, take it from the
@@ -91,6 +95,21 @@ simulates that.
 
 CI runs the same script, so if you need a new permission or a gradle change it
 goes in there, not in a committed `android/` file.
+
+## The updater
+
+`update_checker.dart`. Two rules learned the hard way:
+
+- **`OpenFilex.open` returns a failure, it does not throw.** Ignoring the
+  result is how a denied "Install unknown apps" permission becomes silence.
+  Handle every `ResultType`.
+- **Never hand the installer an unverified file.** Check the HTTP status, the
+  byte count against `Content-Length`, and the zip header. An HTML error page
+  saved as `.apk` produces "problem parsing the package", which blames the
+  wrong thing.
+
+The browser fallback is always on screen. It is slower, and it works when
+nothing else does.
 
 ## Releasing
 

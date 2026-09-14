@@ -341,6 +341,9 @@ class AppState {
   LoadMap loads;
   bool baselineDownConfirmed;
 
+  /// Audible tempo cues. Haptics fire either way.
+  bool soundOn;
+
   List<CheckIn> checkIns;
   List<SessionLog> sessions;
   List<FlareRecord> flares;
@@ -363,6 +366,7 @@ class AppState {
     this.needsRecalibration = false,
     LoadMap? loads,
     this.baselineDownConfirmed = false,
+    this.soundOn = true,
     List<CheckIn>? checkIns,
     List<SessionLog>? sessions,
     List<FlareRecord>? flares,
@@ -412,6 +416,7 @@ class AppState {
         'needsRecalibration': needsRecalibration,
         'loads': loads,
         'baselineDownConfirmed': baselineDownConfirmed,
+        'soundOn': soundOn,
         'checkIns': checkIns.map((c) => c.toJson()).toList(),
         'sessions': sessions.map((s) => s.toJson()).toList(),
         'flares': flares.map((f) => f.toJson()).toList(),
@@ -435,6 +440,7 @@ class AppState {
         needsRecalibration: j['needsRecalibration'] == true,
         loads: _loads(j['loads']),
         baselineDownConfirmed: j['baselineDownConfirmed'] == true,
+        soundOn: j['soundOn'] != false,
         checkIns: ((j['checkIns'] as List?) ?? const [])
             .map((e) => CheckIn.fromJson(e as Map))
             .toList(),

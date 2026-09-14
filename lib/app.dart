@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'engine.dart';
 import 'notifications.dart';
 import 'program.dart';
+import 'session_hw.dart';
 import 'state.dart';
 
 const kProgramAsset = 'assets/programs/biceps_tendinopathy.json';
@@ -45,6 +46,7 @@ class AppModel extends ChangeNotifier {
       program = p;
       state = s;
       engine = Engine(p, s);
+      SessionHw.muted = !s.soundOn;
       loading = false;
       notifyListeners();
       await Nudges.sync(this);
@@ -140,6 +142,12 @@ class AppModel extends ChangeNotifier {
 
   Future<void> setLoad(String exerciseId, String side, double v) async {
     state!.setLoad(exerciseId, side, roundLoad(v));
+    await persist();
+  }
+
+  Future<void> setSoundOn(bool v) async {
+    state!.soundOn = v;
+    SessionHw.muted = !v;
     await persist();
   }
 

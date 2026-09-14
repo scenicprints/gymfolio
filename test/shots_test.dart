@@ -19,6 +19,8 @@ import 'package:gymfolio/screens/edit_session.dart';
 import 'package:gymfolio/screens/how_to.dart';
 import 'package:gymfolio/screens/iso_runner.dart';
 import 'package:gymfolio/screens/onboarding.dart';
+import 'package:gymfolio/screens/settings.dart';
+import 'package:gymfolio/update_checker.dart';
 import 'package:gymfolio/screens/hsr_runner.dart';
 import 'package:gymfolio/screens/progress.dart';
 import 'package:gymfolio/screens/today.dart';
@@ -534,5 +536,49 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
     }
     await shoot(tester, '14-edit-session');
+  });
+
+  testWidgets('settings', (tester) async {
+    tester.view.physicalSize = _size * 2;
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    await tester
+        .pumpWidget(host(modelWith(phase2State()), const SettingsScreen()));
+    await shoot(tester, '15-settings');
+  });
+
+  testWidgets('update sheet', (tester) async {
+    tester.view.physicalSize = _size * 2;
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    final model = modelWith(phase2State());
+    await tester.pumpWidget(host(
+      model,
+      Builder(
+        builder: (context) => Center(
+          child: FilledButton(
+            onPressed: () => showUpdateSheet(
+              context,
+              UpdateInfo(
+                version: '0.4.0',
+                tag: 'v0.4.0',
+                apkUrl: 'https://example.invalid/gymfolio.apk',
+                releaseUrl: 'https://example.invalid/releases',
+                notes: 'Mute toggle for the tempo cue. '
+                    'The update path now reports what actually went wrong '
+                    'instead of a generic failure.',
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('open'));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    await shoot(tester, '16-update-sheet');
   });
 }
