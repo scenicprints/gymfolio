@@ -1,0 +1,110 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      # The engine decides what weight goes on a bar attached to a sore tendon.
+      # A red test blocks the release.
+      - name: Test
+        run: flutter test test/engine_test.dart
+
+      # The repo tracks lib/, assets/, test/ and pubspec.yaml. android/ is
+      # generated here so builds are deterministic and the repo stays clean;
+      # everything that project needs is applied by the script, not committed.
+      - name: Generate and patch the android project
+        run: bash tool/prepare_android.sh
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      # One stable keystore for the life of the app, from repo secrets. Android
+      # only accepts an in-app update when the new APK carries the same
+      # signature as the installed one — lose this key and the only path
+      # forward is uninstall and reinstall.
+      - name: Sign APK
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -z "$KS_B64" ]; then
+            echo "::error::KEYSTORE_B64 is not set. See ROADMAP.md — the app cannot self-update across differently signed builds."
+            exit 1
+          fi
+          echo "$KS_B64" | base64 -d > release.p12
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          BT="$(ls -d $SDK/build-tools/*/ | sort -V | tail -1)"
+          echo "Using build-tools: $BT"
+          "${BT}zipalign" -f 4 build/app/outputs/flutter-apk/app-release.apk aligned.apk
+          "${BT}apksigner" sign \
+            --ks release.p12 --ks-type PKCS12 \
+            --ks-pass "pass:$KS_PASS" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass "pass:$KS_PASS" \
+            --out gymfolio.apk aligned.apk
+          "${BT}apksigner" verify --print-certs gymfolio.apk
+          rm -f release.p12
+
+      # The tag and pubspec must agree, or the phone is offered an update to a
+      # version it already has and the dialog never goes away.
+      - name: Check the tag matches pubspec
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          PUB="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          echo "tag=$TAG pubspec=$PUB"
+          if [ "$TAG" != "$PUB" ]; then
+            echo "::error::Tag v$TAG does not match pubspec version $PUB."
+            exit 1
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gymfolio-apk
+          path: gymfolio.apk
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: gymfolio.apk
+          generate_release_notes: true

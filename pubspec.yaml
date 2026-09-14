@@ -1,0 +1,35 @@
+name: gymfolio
+description: "GymFolio — a training log that decides whether you earned the next week."
+publish_to: 'none'
+
+# The version here is the source of truth for the in-app updater. Bump it in the
+# same commit as the tag: a v-tag whose pubspec disagrees will offer an update
+# to a version the phone already has.
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.2
+  path_provider: ^2.1.4
+  shared_preferences: ^2.3.2
+  package_info_plus: ^8.0.2
+  url_launcher: ^6.3.1
+  open_filex: ^4.5.0
+  share_plus: ^10.1.2
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/programs/

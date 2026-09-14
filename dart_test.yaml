@@ -1,0 +1,3 @@
+tags:
+  shots:
+    # Screenshot harness — run explicitly: flutter test test/shots_test.dart

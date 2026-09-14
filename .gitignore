@@ -1,0 +1,23 @@
+# Generated platform projects — recreate with tool/prepare_android.sh
+/android/
+/web/
+/ios/
+/linux/
+/macos/
+/windows/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+.idea/
+.vscode/
+
+# Never commit signing material
+*.jks
+*.keystore
+*.p12
+key.properties
