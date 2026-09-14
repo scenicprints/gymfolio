@@ -51,7 +51,12 @@ dependencies {
 EOF
 fi
 
-# 3. The scheduled-notification receivers live in the plugin's own manifest and
+# 3. Launcher icon. Has to run after android/ exists, because that is where
+#    flutter_launcher_icons writes the mipmaps.
+echo "==> Launcher icon"
+dart run flutter_launcher_icons
+
+# 4. The scheduled-notification receivers live in the plugin's own manifest and
 #    merge in automatically; nothing to add. Print the result so a failed build
 #    can be diagnosed from the log alone.
 echo "==> Manifest head"

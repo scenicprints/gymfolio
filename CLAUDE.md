@@ -29,6 +29,21 @@ Dart, put it in the JSON instead.
 - Never `pumpAndSettle` a runner screen — the tempo metronome and the rest
   clock are periodic timers and it will hang until the test times out.
 
+## Exercise art
+
+`lib/exercise_art.dart` draws every movement. Two rules:
+
+- **Pick the view that can show the thing.** Supination is invisible from the
+  side, so those movements are drawn end-on down the forearm. An isometric hold
+  has nothing to animate, so the force arrows pulse instead of the limb.
+- **`simplified: true` is thumbnail mode** and must stay cheap to read: no
+  scenery, no path arcs, no inset diagrams. If you add a decorative element,
+  guard it.
+
+The demo widget animates at the movement's real tempo. Isometrics are passed a
+zero tempo — guard any division by the up/down total, or you get a NaN curve
+assertion at runtime.
+
 ## Android
 
 `android/` and `web/` are **generated and gitignored**. Recreate with:
@@ -37,11 +52,17 @@ Dart, put it in the JSON instead.
 bash tool/prepare_android.sh
 ```
 
-That script applies the three things the generated project does not have:
+That script applies the four things the generated project does not have:
 release-manifest permissions (Flutter only puts `INTERNET` in the *debug*
 manifest, so a release build loses all networking), the `GymFolio` launcher
-label, and core-library desugaring, without which
-`flutter_local_notifications` fails at dex time. CI runs the same script — if
+label, core-library desugaring (without which `flutter_local_notifications`
+fails at dex time), and the launcher icon — which must run after `android/`
+exists, since that is where the mipmaps are written.
+
+Regenerating the icon: `python tool/make_icon.py`. Judge it from
+`assets/icon/_launcher_preview.png`, never `icon.png` — the generated adaptive
+XML insets the foreground a further 16% on top of your artwork, and the preview
+simulates that. CI runs the same script — if
 you need a new permission or gradle change, it goes in there, not in a
 committed `android/` file.
 

@@ -3,14 +3,29 @@
   "schema": 1,
   "name": "Distal Biceps Tendinopathy",
   "subtitle": "12-Week Loading Program",
-  "sides": ["L", "R"],
+  "sides": [
+    "L",
+    "R"
+  ],
   "checkInStyle": "betterSameWorse",
   "governingRule": {
     "headline": "Everything is gated by one signal: how the arm feels the next morning.",
     "rows": [
-      ["During the set", "Up to 4/10 pain", "Above 5/10, or sharp/stabbing"],
-      ["Immediately after", "Any level, settling within 2 hours", "Escalating"],
-      ["Next morning (24h)", "Same as or better than baseline", "Worse than baseline"]
+      [
+        "During the set",
+        "Up to 4/10 pain",
+        "Above 5/10, or sharp/stabbing"
+      ],
+      [
+        "Immediately after",
+        "Any level, settling within 2 hours",
+        "Escalating"
+      ],
+      [
+        "Next morning (24h)",
+        "Same as or better than baseline",
+        "Worse than baseline"
+      ]
     ],
     "notes": [
       "The 24-hour response is the one that decides. Pain during loading is expected and is not damage.",
@@ -32,7 +47,10 @@
           "id": "iso-flexion",
           "title": "Isometric Elbow Flexion Hold",
           "timesPerDay": 2,
-          "slots": ["Morning", "Evening"],
+          "slots": [
+            "Morning",
+            "Evening"
+          ],
           "perSide": true,
           "sets": 5,
           "holdSeconds": 45,
@@ -44,13 +62,22 @@
             "Forearm neutral (thumb up) if supinated is provocative; move to palm-up once tolerable.",
             "Push up against something immovable - underside of a desk, a rack pin, a fixed bar, your other hand.",
             "Build tension over 2 seconds, then hold steady."
+          ],
+          "howTo": [
+            "Sit with your upper arm against your side and the elbow bent to 90 degrees.",
+            "Forearm thumb-up if palm-up hurts; move to palm-up once you can.",
+            "Put the hand under something that will not move - a desk edge, a rack pin, a fixed bar, or your other hand.",
+            "Build tension over 2 seconds to about 70% effort, then hold steady. Nothing moves.",
+            "Up to 4/10 pain during the hold is fine. Sharp or above 5 is not."
           ]
         },
         {
           "id": "iso-supination",
           "title": "Isometric Supination Hold",
           "timesPerDay": 1,
-          "slots": ["Once daily"],
+          "slots": [
+            "Once daily"
+          ],
           "perSide": true,
           "sets": 4,
           "holdSeconds": 30,
@@ -60,6 +87,12 @@
           "cues": [
             "Elbow at 90 degrees, hold a hammer or a dumbbell gripped at one end.",
             "Rotate toward palm-up until you feel resistance, hold static against gravity."
+          ],
+          "howTo": [
+            "Elbow at 90 degrees, held against your side.",
+            "Grip a hammer or a dumbbell by one end so the weight is off to one side.",
+            "Rotate toward palm-up until you feel resistance, then hold still against gravity.",
+            "Hold 30 seconds each side, 4 rounds, once a day."
           ]
         }
       ],
@@ -68,9 +101,21 @@
         "cleanDays": 4,
         "holdPainMax": 3,
         "criteria": [
-          {"id": "baselineDown", "label": "Morning baseline pain reduced from starting point", "kind": "confirm"},
-          {"id": "holds3", "label": "45-second holds tolerated at 3/10 or less", "kind": "computed"},
-          {"id": "clean4", "label": "No next-morning flare for 4 consecutive days", "kind": "computed"}
+          {
+            "id": "baselineDown",
+            "label": "Morning baseline pain reduced from starting point",
+            "kind": "confirm"
+          },
+          {
+            "id": "holds3",
+            "label": "45-second holds tolerated at 3/10 or less",
+            "kind": "computed"
+          },
+          {
+            "id": "clean4",
+            "label": "No next-morning flare for 4 consecutive days",
+            "kind": "computed"
+          }
         ],
         "note": "If not met at 2 weeks, stay in Phase 1 for another week. This is common and not a setback."
       }
@@ -82,10 +127,17 @@
       "nominalWeeks": 10,
       "cadence": "perWeek",
       "sessionsPerWeek": 3,
-      "sessionLabels": ["Session A", "Session B", "Session C"],
+      "sessionLabels": [
+        "Session A",
+        "Session B",
+        "Session C"
+      ],
       "minHoursBetweenSessions": 72,
       "purpose": "The main intervention. Progressive tendon loading drives collagen remodeling.",
-      "tempo": {"up": 3, "down": 3},
+      "tempo": {
+        "up": 3,
+        "down": 3
+      },
       "tempoNote": "3 seconds up, 3 seconds down. No pause, no bounce, no swing. A set of 10 reps takes a full minute. If you cannot control the 3-second lowering, the weight is too heavy - this is the most common error and it wastes the entire session.",
       "warmup": [
         "5 min general - bike, rower, or brisk walk",
@@ -101,8 +153,20 @@
           "unit": "lb",
           "note": "The incline (45-60 degrees) puts the biceps on stretch at the bottom, which is where the loading stimulus matters most.",
           "weekCues": [
-            {"fromPhaseWeek": 1, "text": "Start neutral grip if needed."},
-            {"fromPhaseWeek": 3, "text": "Transition to supinated grip."}
+            {
+              "fromPhaseWeek": 1,
+              "text": "Start neutral grip if needed."
+            },
+            {
+              "fromPhaseWeek": 3,
+              "text": "Transition to supinated grip."
+            }
+          ],
+          "howTo": [
+            "Set the bench to 45-60 degrees and sit back against it.",
+            "Let the arm hang straight down, behind the line of your body. That hang is the point - it puts the biceps on stretch at the bottom.",
+            "Curl up over 3 seconds without letting the elbow drift forward.",
+            "Lower over 3 seconds all the way back to the hang. No swing at the bottom."
           ]
         },
         {
@@ -112,8 +176,20 @@
           "unit": "lb",
           "note": "One bar, one load - the right arm gates this lift. The straight bar's full supination is the target position; you need to rebuild it, not avoid it permanently.",
           "weekCues": [
-            {"fromPhaseWeek": 1, "text": "EZ-bar."},
-            {"fromPhaseWeek": 5, "text": "Straight bar if tolerated."}
+            {
+              "fromPhaseWeek": 1,
+              "text": "EZ-bar."
+            },
+            {
+              "fromPhaseWeek": 5,
+              "text": "Straight bar if tolerated."
+            }
+          ],
+          "howTo": [
+            "Stand with the bar at arms' length, palms up, elbows lightly against your sides.",
+            "One bar means one load, and the right arm sets it. Pick the weight the worse arm can hold tempo with.",
+            "Curl up over 3 seconds. Elbows stay where they are - no leaning back, no swing.",
+            "Lower over 3 seconds to straight arms."
           ]
         },
         {
@@ -121,16 +197,72 @@
           "title": "Loaded Supination (Screwdriver)",
           "unilateral": true,
           "unit": "lb",
-          "note": "Elbow at 90 degrees and pinned to your side. Hold a dumbbell by one end so the weight hangs to one side. Rotate palm-down to palm-up. This isolates the supination function of the distal biceps - the specific thing that hurts.",
-          "weekCues": []
+          "note": "This isolates the supination function of the distal biceps - the specific thing that hurts.",
+          "weekCues": [],
+          "howTo": [
+            "Elbow at 90 degrees and pinned to your side, forearm pointing forward.",
+            "Hold a dumbbell by one end so the weight hangs off to one side.",
+            "Start palm-down. Rotate to palm-up over 3 seconds.",
+            "Rotate back over 3 seconds under control. The elbow never leaves your side."
+          ]
         }
       ],
       "loadBlocks": [
-        {"phaseWeeks": [1, 2], "docWeeks": "3-4", "sets": 4, "reps": 15, "restSeconds": 120, "target": "15-rep max"},
-        {"phaseWeeks": [3, 4], "docWeeks": "5-6", "sets": 4, "reps": 12, "restSeconds": 150, "target": "12-rep max"},
-        {"phaseWeeks": [5, 6], "docWeeks": "7-8", "sets": 4, "reps": 10, "restSeconds": 180, "target": "10-rep max"},
-        {"phaseWeeks": [7, 8], "docWeeks": "9-10", "sets": 4, "reps": 8, "restSeconds": 180, "target": "8-rep max"},
-        {"phaseWeeks": [9, 10], "docWeeks": "11-12", "sets": 4, "reps": 6, "restSeconds": 180, "target": "6-rep max"}
+        {
+          "phaseWeeks": [
+            1,
+            2
+          ],
+          "docWeeks": "3-4",
+          "sets": 4,
+          "reps": 15,
+          "restSeconds": 120,
+          "target": "15-rep max"
+        },
+        {
+          "phaseWeeks": [
+            3,
+            4
+          ],
+          "docWeeks": "5-6",
+          "sets": 4,
+          "reps": 12,
+          "restSeconds": 150,
+          "target": "12-rep max"
+        },
+        {
+          "phaseWeeks": [
+            5,
+            6
+          ],
+          "docWeeks": "7-8",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 180,
+          "target": "10-rep max"
+        },
+        {
+          "phaseWeeks": [
+            7,
+            8
+          ],
+          "docWeeks": "9-10",
+          "sets": 4,
+          "reps": 8,
+          "restSeconds": 180,
+          "target": "8-rep max"
+        },
+        {
+          "phaseWeeks": [
+            9,
+            10
+          ],
+          "docWeeks": "11-12",
+          "sets": 4,
+          "reps": 6,
+          "restSeconds": 180,
+          "target": "6-rep max"
+        }
       ],
       "repMaxNote": "Rep max means the last rep is genuinely hard but the tempo holds and pain stays at 4/10 or less. Not to failure.",
       "weeklyIncreasePct": 5,
@@ -147,10 +279,15 @@
       "nominalWeeks": 8,
       "cadence": "perWeek",
       "sessionsPerWeek": 1,
-      "sessionLabels": ["Weekly HSR"],
+      "sessionLabels": [
+        "Weekly HSR"
+      ],
       "minHoursBetweenSessions": 72,
       "purpose": "Rebuild toward previous training loads and establish permanent maintenance.",
-      "tempo": {"up": 3, "down": 3},
+      "tempo": {
+        "up": 3,
+        "down": 3
+      },
       "tempoNote": "Full 3s/3s tempo, same as Phase 2.",
       "warmup": [
         "5 min general - bike, rower, or brisk walk",
@@ -159,12 +296,61 @@
         "One warm-up set of the first exercise at ~50% of working load, full tempo"
       ],
       "exercises": [
-        {"id": "incline-curl", "title": "Incline Dumbbell Curl", "unilateral": true, "unit": "lb", "note": "Supinated grip.", "weekCues": []},
-        {"id": "bar-curl", "title": "Supinated Barbell Curl", "unilateral": false, "unit": "lb", "note": "One bar, one load.", "weekCues": []},
-        {"id": "screwdriver", "title": "Loaded Supination (Screwdriver)", "unilateral": true, "unit": "lb", "note": "Elbow pinned to your side.", "weekCues": []}
+        {
+          "id": "incline-curl",
+          "title": "Incline Dumbbell Curl",
+          "unilateral": true,
+          "unit": "lb",
+          "note": "Supinated grip.",
+          "weekCues": [],
+          "howTo": [
+            "Set the bench to 45-60 degrees and sit back against it.",
+            "Let the arm hang straight down, behind the line of your body. That hang is the point - it puts the biceps on stretch at the bottom.",
+            "Curl up over 3 seconds without letting the elbow drift forward.",
+            "Lower over 3 seconds all the way back to the hang. No swing at the bottom."
+          ]
+        },
+        {
+          "id": "bar-curl",
+          "title": "Supinated Barbell Curl",
+          "unilateral": false,
+          "unit": "lb",
+          "note": "One bar, one load.",
+          "weekCues": [],
+          "howTo": [
+            "Stand with the bar at arms' length, palms up, elbows lightly against your sides.",
+            "One bar means one load, and the right arm sets it. Pick the weight the worse arm can hold tempo with.",
+            "Curl up over 3 seconds. Elbows stay where they are - no leaning back, no swing.",
+            "Lower over 3 seconds to straight arms."
+          ]
+        },
+        {
+          "id": "screwdriver",
+          "title": "Loaded Supination (Screwdriver)",
+          "unilateral": true,
+          "unit": "lb",
+          "note": "This isolates the supination function of the distal biceps - the specific thing that hurts.",
+          "weekCues": [],
+          "howTo": [
+            "Elbow at 90 degrees and pinned to your side, forearm pointing forward.",
+            "Hold a dumbbell by one end so the weight hangs off to one side.",
+            "Start palm-down. Rotate to palm-up over 3 seconds.",
+            "Rotate back over 3 seconds under control. The elbow never leaves your side."
+          ]
+        }
       ],
       "loadBlocks": [
-        {"phaseWeeks": [1, 8], "docWeeks": "13-20", "sets": 3, "reps": 6, "restSeconds": 180, "target": "6-rep max"}
+        {
+          "phaseWeeks": [
+            1,
+            8
+          ],
+          "docWeeks": "13-20",
+          "sets": 3,
+          "reps": 6,
+          "restSeconds": 180,
+          "target": "6-rep max"
+        }
       ],
       "repMaxNote": "One heavy slow resistance session per week: 3 x 6, full 3s/3s tempo.",
       "weeklyIncreasePct": 0,
@@ -182,7 +368,10 @@
         "72 hours between heavy sessions loading the same tissue.",
         "No training to failure on elbow flexion."
       ],
-      "advance": {"requireSessions": 1, "note": "One clean session per week."}
+      "advance": {
+        "requireSessions": 1,
+        "note": "One clean session per week."
+      }
     }
   ],
   "flare": {
@@ -201,18 +390,48 @@
     "note": "Expect two or three flares across the twelve weeks. They are part of the normal course and do not mean the program failed. A flare that does not settle within a week, or that comes with new weakness, needs an exam rather than another cycle of this."
   },
   "restrictions": [
-    {"part": "Legs", "status": "Unrestricted. Train normally."},
-    {"part": "Shoulders", "status": "Unrestricted, avoiding deep-stretch positions."},
-    {"part": "Back / pulling", "status": "Continue, but use neutral or pronated grips. Drop supinated rows and chin-ups. Reduce load ~30% initially, rebuild over the block."},
-    {"part": "Chest / pressing", "status": "Continue at reduced load (start ~50-60%) with restricted depth - stop the dumbbell descent level with the chest, not below. Rebuild toward previous loads across Phase 3."},
-    {"part": "Direct arm work", "status": "Nothing beyond the three prescribed exercises. No additional curl variations, no training to failure on elbow flexion."}
+    {
+      "part": "Legs",
+      "status": "Unrestricted. Train normally."
+    },
+    {
+      "part": "Shoulders",
+      "status": "Unrestricted, avoiding deep-stretch positions."
+    },
+    {
+      "part": "Back / pulling",
+      "status": "Continue, but use neutral or pronated grips. Drop supinated rows and chin-ups. Reduce load ~30% initially, rebuild over the block."
+    },
+    {
+      "part": "Chest / pressing",
+      "status": "Continue at reduced load (start ~50-60%) with restricted depth - stop the dumbbell descent level with the chest, not below. Rebuild toward previous loads across Phase 3."
+    },
+    {
+      "part": "Direct arm work",
+      "status": "Nothing beyond the three prescribed exercises. No additional curl variations, no training to failure on elbow flexion."
+    }
   ],
   "whatNotToDo": [
-    {"title": "Rest alone", "text": "Reliably fails in chronic tendinopathy. The tendon is under-conditioned, not inflamed."},
-    {"title": "Prolonged NSAIDs", "text": "May blunt the adaptive response to loading. Short courses for acute flares only."},
-    {"title": "Corticosteroid injection", "text": "Short-term pain relief, worse long-term outcomes, and elevated rupture risk in load-bearing tendons."},
-    {"title": "Permanently avoiding supination", "text": "Avoidance means the tendon never adapts to the position that provokes it. The provoking movement is the rehabilitation, scaled appropriately."},
-    {"title": "Stretching into pain", "text": "Compressive stretching of an irritable tendon tends to aggravate it."}
+    {
+      "title": "Rest alone",
+      "text": "Reliably fails in chronic tendinopathy. The tendon is under-conditioned, not inflamed."
+    },
+    {
+      "title": "Prolonged NSAIDs",
+      "text": "May blunt the adaptive response to loading. Short courses for acute flares only."
+    },
+    {
+      "title": "Corticosteroid injection",
+      "text": "Short-term pain relief, worse long-term outcomes, and elevated rupture risk in load-bearing tendons."
+    },
+    {
+      "title": "Permanently avoiding supination",
+      "text": "Avoidance means the tendon never adapts to the position that provokes it. The provoking movement is the rehabilitation, scaled appropriately."
+    },
+    {
+      "title": "Stretching into pain",
+      "text": "Compressive stretching of an irritable tendon tends to aggravate it."
+    }
   ],
   "redFlags": [
     "Sudden pop, sharp tearing sensation, or visible change in muscle shape",
@@ -223,11 +442,22 @@
     "Flare that does not settle within one week of returning to isometrics"
   ],
   "timeline": [
-    ["First noticeable reduction in daily pain", "3-5 weeks"],
-    ["Meaningful strength return", "8-12 weeks"],
-    ["Return to previous training loads", "4-6 months"],
-    ["Right arm (multi-year)", "Longer end of every range above"]
+    [
+      "First noticeable reduction in daily pain",
+      "3-5 weeks"
+    ],
+    [
+      "Meaningful strength return",
+      "8-12 weeks"
+    ],
+    [
+      "Return to previous training loads",
+      "4-6 months"
+    ],
+    [
+      "Right arm (multi-year)",
+      "Longer end of every range above"
+    ]
   ],
-  "timelineNote": "Progress is non-linear. A plateau of two to three weeks mid-block is normal. A plateau of six to eight weeks with no change is the point to seek imaging.",
-  "beforeStarting": "The bilateral pattern and multi-year history are the two features that justify an in-person exam first - to grade the tendon, exclude a partial tear that would change the progression, and screen for systemic contributors. This program is written to be handed to a physio or sports med physician and modified, not run blind."
+  "timelineNote": "Progress is non-linear. A plateau of two to three weeks mid-block is normal. A plateau of six to eight weeks with no change is the point to seek imaging."
 }

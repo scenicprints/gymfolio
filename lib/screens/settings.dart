@@ -202,13 +202,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : s.baselineNote,
                 style: const TextStyle(color: Tone.dim, height: 1.4, fontSize: 13),
               ),
-              const SizedBox(height: 10),
-              Text(
-                s.examAcknowledged
-                    ? 'Examined in person before starting: yes.'
-                    : 'Examined in person before starting: not recorded.',
-                style: const TextStyle(color: Tone.faint, fontSize: 12),
-              ),
             ],
           ),
         ),

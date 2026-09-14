@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../engine.dart';
+import '../exercise_art.dart';
 import '../state.dart';
 import '../theme.dart';
 import 'calibrate.dart';
@@ -296,6 +297,23 @@ class _WorkItem extends StatelessWidget {
             },
       child: Row(
         children: [
+          // What today actually looks like, before you have opened anything.
+          if (item.kind == PlanKind.iso)
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: MovementThumb(movementId: item.block!.id, size: 48),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final p in e.prescription().take(3))
+                    MovementThumb(movementId: p.exercise.id, size: 38),
+                ],
+              ),
+            ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +331,7 @@ class _WorkItem extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Container(
             width: 42,
             height: 42,

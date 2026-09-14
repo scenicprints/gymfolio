@@ -43,6 +43,7 @@ class Exercise {
   final bool unilateral;
   final String unit;
   final String note;
+  final List<String> howTo;
   final List<WeekCue> weekCues;
 
   const Exercise({
@@ -51,6 +52,7 @@ class Exercise {
     required this.unilateral,
     required this.unit,
     required this.note,
+    required this.howTo,
     required this.weekCues,
   });
 
@@ -60,6 +62,7 @@ class Exercise {
         unilateral: j['unilateral'] == true,
         unit: _s(j['unit'], 'lb'),
         note: _s(j['note']),
+        howTo: _sl(j['howTo']),
         weekCues: ((j['weekCues'] as List?) ?? const [])
             .map((e) => WeekCue(_i(e['fromPhaseWeek'], 1), _s(e['text'])))
             .toList(),
@@ -129,6 +132,7 @@ class IsoBlock {
   final int restSeconds;
   final String effort;
   final List<String> cues;
+  final List<String> howTo;
 
   const IsoBlock({
     required this.id,
@@ -142,6 +146,7 @@ class IsoBlock {
     required this.restSeconds,
     required this.effort,
     required this.cues,
+    required this.howTo,
   });
 
   factory IsoBlock.from(Map j) => IsoBlock(
@@ -156,6 +161,7 @@ class IsoBlock {
         restSeconds: _i(j['restSeconds'], 120),
         effort: _s(j['effort']),
         cues: _sl(j['cues']),
+        howTo: _sl(j['howTo']),
       );
 
   String slotLabel(int index) =>
@@ -385,7 +391,6 @@ class Program {
   final List<String> redFlags;
   final List<List<String>> timeline;
   final String timelineNote;
-  final String beforeStarting;
 
   const Program({
     required this.id,
@@ -400,7 +405,6 @@ class Program {
     required this.redFlags,
     required this.timeline,
     required this.timelineNote,
-    required this.beforeStarting,
   });
 
   factory Program.fromJson(Map j) => Program(
@@ -424,7 +428,6 @@ class Program {
             .map((r) => (r as List).map((e) => '$e').toList())
             .toList(),
         timelineNote: _s(j['timelineNote']),
-        beforeStarting: _s(j['beforeStarting']),
       );
 
   static Future<Program> load(String asset) async {

@@ -250,7 +250,6 @@ const kModeStopped = 'stopped';
 class AppState {
   String programId;
   bool onboarded;
-  bool examAcknowledged;
   String startDate;
   String baselineNote;
 
@@ -279,7 +278,6 @@ class AppState {
   AppState({
     required this.programId,
     this.onboarded = false,
-    this.examAcknowledged = false,
     String? startDate,
     this.baselineNote = '',
     this.phaseId = '',
@@ -328,7 +326,6 @@ class AppState {
         'schema': 1,
         'programId': programId,
         'onboarded': onboarded,
-        'examAcknowledged': examAcknowledged,
         'startDate': startDate,
         'baselineNote': baselineNote,
         'phaseId': phaseId,
@@ -351,7 +348,6 @@ class AppState {
   factory AppState.fromJson(Map j) => AppState(
         programId: '${j['programId'] ?? ''}',
         onboarded: j['onboarded'] == true,
-        examAcknowledged: j['examAcknowledged'] == true,
         startDate: '${j['startDate'] ?? ymd(DateTime.now())}',
         baselineNote: '${j['baselineNote'] ?? ''}',
         phaseId: '${j['phaseId'] ?? ''}',

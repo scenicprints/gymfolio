@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app.dart';
+import '../exercise_art.dart';
 import '../program.dart';
 import '../state.dart';
 import '../theme.dart';
+import 'how_to.dart';
 import 'pain_sheet.dart';
 
 /// Phase 1 is a timer, and so is the flare protocol. Arms alternate inside the
@@ -191,45 +193,59 @@ class _IsoRunnerScreenState extends State<IsoRunnerScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      SizedBox(
-                        width: 260,
-                        height: 260,
-                        child: CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 14,
-                          backgroundColor: Tone.surfaceHi,
-                          valueColor: AlwaysStoppedAnimation(color),
-                          strokeCap: StrokeCap.round,
-                        ),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(title,
-                              style: TextStyle(
-                                  color: color,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.2)),
-                          const SizedBox(height: 4),
-                          Text(
-                            _stage == _Stage.ready
-                                ? '${b.holdSeconds}'
-                                : _stage == _Stage.done
-                                    ? '✓'
-                                    : _remaining.ceil().toString(),
-                            style: const TextStyle(
-                                fontSize: 78,
-                                fontWeight: FontWeight.w200,
-                                height: 1.0,
-                                fontFeatures: [FontFeature.tabularFigures()]),
+                      // Before the timer starts there is no progress to show,
+                      // so the ring is just a grey donut in the way of the
+                      // thing you actually want: how to hold the position.
+                      if (_stage != _Stage.ready)
+                        SizedBox(
+                          width: 260,
+                          height: 260,
+                          child: CircularProgressIndicator(
+                            value: progress,
+                            strokeWidth: 14,
+                            backgroundColor: Tone.surfaceHi,
+                            valueColor: AlwaysStoppedAnimation(color),
+                            strokeCap: StrokeCap.round,
                           ),
-                          if (_stage != _Stage.done)
-                            const Text('seconds',
-                                style:
-                                    TextStyle(color: Tone.faint, fontSize: 13)),
-                        ],
-                      ),
+                        ),
+                      if (_stage == _Stage.ready)
+                        SizedBox(
+                          width: 300,
+                          height: 268,
+                          child: MovementDemo(
+                            movementId: b.id,
+                            upSeconds: 0,
+                            downSeconds: 0,
+                            height: 268,
+                          ),
+                        )
+                      else
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(title,
+                                style: TextStyle(
+                                    color: color,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2)),
+                            const SizedBox(height: 4),
+                            Text(
+                              _stage == _Stage.done
+                                  ? '✓'
+                                  : _remaining.ceil().toString(),
+                              style: const TextStyle(
+                                  fontSize: 78,
+                                  fontWeight: FontWeight.w200,
+                                  height: 1.0,
+                                  fontFeatures: [FontFeature.tabularFigures()]),
+                            ),
+                            if (_stage != _Stage.done)
+                              const Text('seconds',
+                                  style: TextStyle(
+                                      color: Tone.faint, fontSize: 13)),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -241,9 +257,30 @@ class _IsoRunnerScreenState extends State<IsoRunnerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${b.sets} x ${b.holdSeconds}s at ${b.effort}',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                              '${b.sets} x ${b.holdSeconds}s at ${b.effort}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                        HowToButton(
+                          size: 28,
+                          onTap: () => showHowTo(
+                            context,
+                            movementId: b.id,
+                            title: b.title,
+                            steps: b.howTo,
+                            upSeconds: 0,
+                            downSeconds: 0,
+                            scheme:
+                                '${b.sets} x ${b.holdSeconds}s each arm, ${b.timesPerDay}x daily',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     for (final c in b.cues)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 5),

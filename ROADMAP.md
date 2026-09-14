@@ -47,10 +47,13 @@ lib/
   notifications.dart  daily reminders, fully guarded (app works without them)
   update_checker.dart in-app updater off GitHub Releases
   theme.dart        palette (`Tone`) and the shared Panel / SideChip widgets
+  exercise_art.dart the movement figures — CustomPainter per view, animated
+                    at the real tempo; `simplified` for thumbnails
   screens/          today, checkin, iso_runner, hsr_runner, calibrate,
                     progress, program_view, settings, onboarding, pain_sheet
 assets/programs/biceps_tendinopathy.json   the program document
 tool/prepare_android.sh                    regenerates + patches android/
+tool/make_icon.py                          draws the launcher icon
 test/engine_test.dart                      25 tests over the decision rules
 test/shots_test.dart                       renders every screen to build/shots/
 ```
@@ -124,9 +127,33 @@ repo; keep it that way and never rotate it.
   isometrics or in a flare, once daily otherwise.
 - **CI + in-app updater.**
 
-### Next — v0.2.0 (nothing started)
+### Shipped — v0.2.0
 
-Ordered by how much they matter in the first month of actually using it.
+- **Exercise visuals.** Every movement is drawn as an articulated figure in
+  `lib/exercise_art.dart` and **animates at the prescribed tempo** — three
+  seconds up, three seconds down — so "how slow is slow" is shown rather than
+  described. Five views, each chosen for what it can actually show: side-on for
+  the two curls, end-on down the forearm for the two rotation movements
+  (supination is invisible from the side), and a seated press into a fixed
+  surface for the isometric hold, where the arrows carry the animation because
+  nothing moves.
+  - A how-to sheet (`screens/how_to.dart`) with the figure, numbered steps,
+    this week's cue and the rationale, reachable from the warm-up list, the
+    active set card, the isometric ready screen and the Program tab.
+  - The step text lives in the program JSON (`howTo`), like everything else.
+  - Thumbnails render a `simplified` pass — no scenery, arcs or inset diagrams,
+    which are noise at 46 pixels.
+  - The isometric ready screen shows the figure instead of an empty progress
+    ring, and Today shows thumbnails of what the session actually is.
+- **Launcher icon.** `tool/make_icon.py` draws a barbell with one blue and one
+  orange plate — the app's own left/right colours. The script also renders
+  `assets/icon/_launcher_preview.png` through the circle and squircle masks
+  **with the 16% inset applied**, because flutter_launcher_icons adds that
+  inset on top of your artwork and a mark sized without it comes out a sliver.
+- **"Before starting" removed** from onboarding, along with its state field and
+  the Settings line that reported it.
+
+### Next — v0.3.0 (nothing started)
 
 - [ ] **Session resume.** Kill the app mid-session and the sets logged so far
       are gone. Persist an in-progress session and offer to resume.
@@ -140,7 +167,6 @@ Ordered by how much they matter in the first month of actually using it.
 - [ ] **Backup that survives the phone.** Export is manual today. Consider a
       private `gymfolio-data` repo, matching the pattern used by bodycomp and
       fuelwise.
-- [ ] **Launcher icon.** Currently the stock Flutter icon.
 
 ### Later
 
@@ -190,7 +216,8 @@ needs.
 ## Working notes for whoever picks this up
 
 - **Look at the screens.** `flutter test test/shots_test.dart` renders every
-  one to `build/shots/*.png` at phone size, with a real font loaded — the
+  one — including the movement art at three points through its range — to
+  `build/shots/*.png` at phone size, with a real font loaded — the
   placeholder font in `flutter_test` is about twice the width of real text and
   invents overflows that do not exist. Green tests are not evidence a screen is
   usable.

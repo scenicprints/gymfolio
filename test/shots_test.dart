@@ -11,8 +11,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gymfolio/app.dart';
 import 'package:gymfolio/engine.dart';
+import 'package:gymfolio/exercise_art.dart';
 import 'package:gymfolio/program.dart';
 import 'package:gymfolio/screens/calibrate.dart';
+import 'package:gymfolio/screens/how_to.dart';
+import 'package:gymfolio/screens/iso_runner.dart';
+import 'package:gymfolio/screens/onboarding.dart';
 import 'package:gymfolio/screens/hsr_runner.dart';
 import 'package:gymfolio/screens/progress.dart';
 import 'package:gymfolio/screens/today.dart';
@@ -35,8 +39,9 @@ Future<void> shoot(WidgetTester tester, String name) async {
   for (var i = 0; i < 5; i++) {
     await tester.pump(const Duration(milliseconds: 40));
   }
-  final boundary = tester.firstRenderObject<RenderRepaintBoundary>(
-    find.byType(RepaintBoundary),
+  final keyed = find.byKey(const ValueKey('shot'));
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    keyed.evaluate().isNotEmpty ? keyed : find.byType(RepaintBoundary).first,
   );
   // toImage needs the real event loop; inside the fake-async test zone its
   // future never completes.
@@ -85,7 +90,9 @@ AppModel modelWith(AppState s) {
   return m;
 }
 
-Widget host(AppModel model, Widget child) => AppScope(
+Widget host(AppModel model, Widget child) => RepaintBoundary(
+      key: const ValueKey('shot'),
+      child: AppScope(
       notifier: model,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -94,7 +101,7 @@ Widget host(AppModel model, Widget child) => AppScope(
         ),
         home: Scaffold(body: SafeArea(child: child)),
       ),
-    );
+    ));
 
 AppState phase1State() {
   final today = DateTime.now();
@@ -304,5 +311,146 @@ void main() {
     s.needsRecalibration = true;
     await tester.pumpWidget(host(modelWith(s), const CalibrateScreen()));
     await shoot(tester, '08-calibrate');
+  });
+
+  testWidgets('movement art - every figure through the range', (tester) async {
+    tester.view.physicalSize = const Size(900, 1180) * 1.6;
+    tester.view.devicePixelRatio = 1.6;
+    addTearDown(tester.view.reset);
+
+    const ids = [
+      'incline-curl',
+      'bar-curl',
+      'screwdriver',
+      'iso-flexion',
+      'iso-supination',
+    ];
+    const ts = [0.0, 0.5, 1.0];
+
+    await tester.pumpWidget(RepaintBoundary(
+      key: const ValueKey('shot'),
+      child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme().copyWith(
+        textTheme: buildTheme().textTheme.apply(fontFamily: 'Roboto'),
+      ),
+      home: Scaffold(
+        backgroundColor: Tone.bg,
+        body: SafeArea(
+          child: Column(
+            children: [
+              for (final id in ids)
+                Expanded(
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 150,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Text(id,
+                              style: const TextStyle(
+                                  color: Tone.dim,
+                                  fontSize: 13,
+                                  fontFamily: 'Roboto')),
+                        ),
+                      ),
+                      for (final t in ts)
+                        Expanded(
+                          child: CustomPaint(
+                            painter: MovementPainter(t: t, view: viewFor(id)),
+                            size: Size.infinite,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    )));
+    await shoot(tester, '09-movement-art');
+  });
+
+  testWidgets('how-to sheet', (tester) async {
+    tester.view.physicalSize = _size * 2;
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    final model = modelWith(phase2State());
+    await tester.pumpWidget(host(
+      model,
+      Builder(
+        builder: (context) => Center(
+          child: FilledButton(
+            onPressed: () => showHowTo(
+              context,
+              movementId: 'screwdriver',
+              title: 'Loaded Supination (Screwdriver)',
+              steps: model.program!
+                  .phaseById('phase2')
+                  .exercises
+                  .firstWhere((e) => e.id == 'screwdriver')
+                  .howTo,
+              note: model.program!
+                  .phaseById('phase2')
+                  .exercises
+                  .firstWhere((e) => e.id == 'screwdriver')
+                  .note,
+              scheme: '4 x 12 at your 12-rep max',
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('open'));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    await shoot(tester, '10-how-to');
+  });
+
+  testWidgets('isometric runner - ready screen', (tester) async {
+    tester.view.physicalSize = _size * 2;
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    final model = modelWith(phase1State());
+    final block = model.program!.isoPhase.blocks.first;
+    await tester.pumpWidget(RepaintBoundary(
+      key: const ValueKey('shot'),
+      child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme().copyWith(
+        textTheme: buildTheme().textTheme.apply(fontFamily: 'Roboto'),
+      ),
+      home: AppScope(
+        notifier: model,
+        child: IsoRunnerScreen(block: block, label: 'Morning'),
+      ),
+    )));
+    await shoot(tester, '11-iso-ready');
+  });
+
+  testWidgets('onboarding', (tester) async {
+    tester.view.physicalSize = _size * 2;
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    final p = loadProgram();
+    final m = AppModel();
+    m.program = p;
+    m.state = AppState(programId: p.id, phaseId: p.phases.first.id);
+    m.engine = Engine(p, m.state!);
+    m.loading = false;
+    await tester.pumpWidget(RepaintBoundary(
+      key: const ValueKey('shot'),
+      child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme().copyWith(
+        textTheme: buildTheme().textTheme.apply(fontFamily: 'Roboto'),
+      ),
+      home: AppScope(notifier: m, child: const OnboardingScreen()),
+    )));
+    await shoot(tester, '12-onboarding');
   });
 }

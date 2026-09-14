@@ -66,13 +66,9 @@ class AppModel extends ChangeNotifier {
 
   // ------------------------------------------------------------- actions
 
-  Future<void> startProgram({
-    required String baselineNote,
-    required bool examAcknowledged,
-  }) async {
+  Future<void> startProgram({required String baselineNote}) async {
     final s = state!;
     s.onboarded = true;
-    s.examAcknowledged = examAcknowledged;
     s.baselineNote = baselineNote;
     s.startDate = ymd(DateTime.now());
     s.weekStart = ymd(DateTime.now());

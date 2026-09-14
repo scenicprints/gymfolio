@@ -5,7 +5,7 @@ publish_to: 'none'
 # The version here is the source of truth for the in-app updater. Bump it in the
 # same commit as the tag: a v-tag whose pubspec disagrees will offer an update
 # to a version the phone already has.
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.9.0
@@ -28,6 +28,19 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+# Regenerate the source art with `python tool/make_icon.py`, then run
+# `dart run flutter_launcher_icons` — tool/prepare_android.sh does both, after
+# android/ exists. Check assets/icon/_launcher_preview.png, not icon.png: the
+# adaptive mask crops, and a mark that looks right full-bleed can lose its
+# plates to the circle.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0E1113"
+  adaptive_icon_foreground: "assets/icon/icon_fg.png"
 
 flutter:
   uses-material-design: true

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../app.dart';
+import '../exercise_art.dart';
 import '../theme.dart';
+import 'how_to.dart';
 
 /// The written program, rendered from the same JSON the engine runs on. If the
 /// document and the app ever disagree, there is only one file to fix.
@@ -107,19 +109,46 @@ class ProgramScreen extends StatelessWidget {
                   if (ph.isDaily) ...[
                     const SizedBox(height: 10),
                     for (final b in ph.blocks) ...[
-                      Text('${b.title} — ${b.sets} x ${b.holdSeconds}s, '
-                          '${b.timesPerDay}x daily',
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 3),
-                      for (final c in b.cues)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 2, bottom: 3),
-                          child: Text('· $c',
-                              style: const TextStyle(
-                                  color: Tone.dim, fontSize: 12, height: 1.35)),
+                      InkWell(
+                        onTap: () => showHowTo(
+                          context,
+                          movementId: b.id,
+                          title: b.title,
+                          steps: b.howTo,
+                          upSeconds: 0,
+                          downSeconds: 0,
+                          scheme:
+                              '${b.sets} x ${b.holdSeconds}s each arm, ${b.timesPerDay}x daily',
                         ),
-                      const SizedBox(height: 8),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              MovementThumb(movementId: b.id, size: 42),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(b.title,
+                                        style: const TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700)),
+                                    Text(
+                                        '${b.sets} x ${b.holdSeconds}s · ${b.timesPerDay}x daily',
+                                        style: const TextStyle(
+                                            color: Tone.dim, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.help_outline,
+                                  size: 18, color: Tone.faint),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
                     ],
                   ] else ...[
                     const SizedBox(height: 10),
@@ -131,33 +160,44 @@ class ProgramScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     for (final ex in ph.exercises)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('· ', style: TextStyle(color: Tone.faint)),
-                            Expanded(
-                              child: RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                      fontSize: 12.5, height: 1.35, color: Tone.text),
+                      InkWell(
+                        onTap: () => showHowTo(
+                          context,
+                          movementId: ex.id,
+                          title: ex.title,
+                          steps: ex.howTo,
+                          note: ex.note,
+                          upSeconds: ph.tempo.up,
+                          downSeconds: ph.tempo.down,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              MovementThumb(movementId: ex.id, size: 42),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    TextSpan(
-                                        text: ex.title,
+                                    Text(ex.title,
                                         style: const TextStyle(
-                                            fontWeight: FontWeight.w600)),
-                                    TextSpan(
-                                      text: ex.unilateral
-                                          ? '  (per arm)'
-                                          : '  (one load)',
-                                      style: const TextStyle(color: Tone.faint),
-                                    ),
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700)),
+                                    Text(
+                                        ex.unilateral
+                                            ? 'per arm'
+                                            : 'one load, gated by the right arm',
+                                        style: const TextStyle(
+                                            color: Tone.faint, fontSize: 11.5)),
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
+                              const Icon(Icons.help_outline,
+                                  size: 18, color: Tone.faint),
+                            ],
+                          ),
                         ),
                       ),
                     if (ph.loadBlocks.isNotEmpty) ...[

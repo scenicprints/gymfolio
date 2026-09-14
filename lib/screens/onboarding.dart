@@ -15,7 +15,6 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _baseline = TextEditingController();
-  bool _exam = false;
   bool _saving = false;
 
   @override
@@ -47,47 +46,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               style: const TextStyle(color: Tone.dim, fontSize: 15),
             ),
             const SizedBox(height: 24),
-
-            Panel(
-              border: Tone.hold.withValues(alpha: 0.4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: const [
-                    Icon(Icons.info_outline, color: Tone.hold, size: 18),
-                    SizedBox(width: 8),
-                    Text('Before starting',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700, color: Tone.hold)),
-                  ]),
-                  const SizedBox(height: 10),
-                  Text(p.beforeStarting,
-                      style: const TextStyle(color: Tone.dim, height: 1.45)),
-                  const SizedBox(height: 14),
-                  CheckboxListTile(
-                    value: _exam,
-                    onChanged: (v) => setState(() => _exam = v ?? false),
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    dense: true,
-                    activeColor: Tone.good,
-                    title: const Text(
-                      'I have had this looked at in person.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                  if (!_exam)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4, top: 2),
-                      child: Text(
-                        'You can start either way — the app records the answer '
-                        'so the log you hand over says so.',
-                        style: TextStyle(color: Tone.faint, fontSize: 12.5),
-                      ),
-                    ),
-                ],
-              ),
-            ),
 
             const SizedBox(height: 20),
             const SectionLabel('Your baseline'),
@@ -173,15 +131,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       setState(() => _saving = true);
                       await model.startProgram(
                         baselineNote: _baseline.text.trim(),
-                        examAcknowledged: _exam,
                       );
                     },
               child: Text(_saving ? 'Starting…' : 'Start Week 1'),
             ),
             const SizedBox(height: 12),
             const Text(
-              'Loads, weeks and flares are all decided from what you log. '
-              'Nothing here is a substitute for the person who examined you.',
+              'Loads, weeks and flares are all decided from what you log.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Tone.faint, fontSize: 12),
             ),

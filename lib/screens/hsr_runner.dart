@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app.dart';
+import '../engine.dart';
+import '../exercise_art.dart';
 import '../program.dart';
 import '../state.dart';
 import '../theme.dart';
+import 'how_to.dart';
 import 'pain_sheet.dart';
 
 /// Heavy slow resistance. The tempo is the intervention, not a detail: three
@@ -205,6 +208,21 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
     });
   }
 
+  void _openHowTo(AppModel model, Prescribed p) {
+    final b = model.engine!.loadBlock;
+    showHowTo(
+      context,
+      movementId: p.exercise.id,
+      title: p.exercise.title,
+      steps: p.exercise.howTo,
+      note: p.exercise.note,
+      cue: p.cue,
+      upSeconds: _tempo.up,
+      downSeconds: _tempo.down,
+      scheme: b == null ? null : '${b.scheme} at your ${b.target}',
+    );
+  }
+
   Future<void> _finish(AppModel model) async {
     final sides = model.program!.sides;
     final pain = await showPainSheet(context, sides);
@@ -297,17 +315,31 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (final p in model.engine!.prescription()) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(p.exercise.title,
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                    ),
-                    Text('${p.sets} x ${p.reps}',
-                        style: const TextStyle(color: Tone.dim)),
-                  ],
+                InkWell(
+                  onTap: () => _openHowTo(model, p),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    children: [
+                      MovementThumb(movementId: p.exercise.id),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(p.exercise.title,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700)),
+                            Text('${p.sets} x ${p.reps}',
+                                style: const TextStyle(
+                                    color: Tone.dim, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      HowToButton(onTap: () => _openHowTo(model, p)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     for (final side in p.sides) ...[
@@ -372,6 +404,15 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
                               fontSize: 16, fontWeight: FontWeight.w700)),
                     ),
                     if (t.side != 'BOTH') SideChip(t.side, size: 24),
+                    const SizedBox(width: 8),
+                    HowToButton(
+                      size: 28,
+                      onTap: () {
+                        final pres = model.engine!.prescription().firstWhere(
+                            (x) => x.exercise.id == t.exercise.id);
+                        _openHowTo(model, pres);
+                      },
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
