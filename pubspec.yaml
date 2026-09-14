@@ -5,7 +5,7 @@ publish_to: 'none'
 # The version here is the source of truth for the in-app updater. Bump it in the
 # same commit as the tag: a v-tag whose pubspec disagrees will offer an update
 # to a version the phone already has.
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: ^3.9.0
@@ -23,6 +23,8 @@ dependencies:
   share_plus: ^10.1.2
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
+  wakelock_plus: ^1.2.10
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -46,3 +48,27 @@ flutter:
   uses-material-design: true
   assets:
     - assets/programs/
+    - assets/sound/
+
+  # Barlow and Barlow Condensed, SIL Open Font License (assets/fonts/OFL.txt).
+  # Bundled rather than fetched at runtime: the app has to look the same in a
+  # basement gym with no signal.
+  fonts:
+    - family: Barlow
+      fonts:
+        - asset: assets/fonts/Barlow-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Barlow-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Barlow-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Barlow-Bold.ttf
+          weight: 700
+    - family: BarlowCondensed
+      fonts:
+        - asset: assets/fonts/BarlowCondensed-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/BarlowCondensed-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BarlowCondensed-Bold.ttf
+          weight: 700

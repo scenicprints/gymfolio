@@ -12,8 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gymfolio/app.dart';
 import 'package:gymfolio/engine.dart';
 import 'package:gymfolio/exercise_art.dart';
+import 'package:gymfolio/session_hw.dart';
 import 'package:gymfolio/program.dart';
 import 'package:gymfolio/screens/calibrate.dart';
+import 'package:gymfolio/screens/edit_session.dart';
 import 'package:gymfolio/screens/how_to.dart';
 import 'package:gymfolio/screens/iso_runner.dart';
 import 'package:gymfolio/screens/onboarding.dart';
@@ -65,6 +67,16 @@ Program loadProgram() => Program.fromJson(
 /// document rather than a stub.
 void stubAssets() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // The runners persist an in-progress session after every set, so the shot
+  // harness needs somewhere for path_provider to point.
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+    const MethodChannel('plugins.flutter.io/path_provider'),
+    (call) async => Directory.systemTemp
+        .createTempSync('gymfolio_shots')
+        .path,
+  );
   final raw =
       File('assets/programs/biceps_tendinopathy.json').readAsBytesSync();
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -96,9 +108,7 @@ Widget host(AppModel model, Widget child) => RepaintBoundary(
       notifier: model,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: buildTheme().copyWith(
-          textTheme: buildTheme().textTheme.apply(fontFamily: 'Roboto'),
-        ),
+        theme: buildTheme(),
         home: Scaffold(body: SafeArea(child: child)),
       ),
     ));
@@ -203,24 +213,37 @@ AppState phase2State() {
 /// not exist on a phone. Register a real face so the geometry in these shots
 /// is the geometry you will actually get.
 Future<void> loadRealFont() async {
-  for (final path in const [
-    r'C:\Windows\Fonts\segoeui.ttf',
-    r'C:\Windows\Fontsrial.ttf',
-    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-  ]) {
-    final f = File(path);
-    if (!f.existsSync()) continue;
-    final bytes = f.readAsBytesSync();
-    for (final family in const ['Roboto', 'packages/gymfolio/Roboto']) {
-      final loader = FontLoader(family)
-        ..addFont(Future.value(ByteData.view(Uint8List.fromList(bytes).buffer)));
-      await loader.load();
+  Future<void> reg(String family, List<String> files) async {
+    final loader = FontLoader(family);
+    var any = false;
+    for (final f in files) {
+      final file = File('assets/fonts/$f');
+      if (!file.existsSync()) continue;
+      any = true;
+      loader.addFont(Future.value(
+          ByteData.view(Uint8List.fromList(file.readAsBytesSync()).buffer)));
     }
-    return;
+    if (any) await loader.load();
   }
+
+  await reg('Barlow', [
+    'Barlow-Regular.ttf',
+    'Barlow-Medium.ttf',
+    'Barlow-SemiBold.ttf',
+    'Barlow-Bold.ttf',
+  ]);
+  await reg('BarlowCondensed', [
+    'BarlowCondensed-Medium.ttf',
+    'BarlowCondensed-SemiBold.ttf',
+    'BarlowCondensed-Bold.ttf',
+  ]);
+  // Anything that slips through to the default family still needs a real face,
+  // or flutter_test draws boxes twice the width of real text.
+  await reg('Roboto', ['Barlow-Regular.ttf']);
 }
 
 void main() {
+  SessionHw.enabled = false;
   setUp(stubAssets);
   setUpAll(loadRealFont);
 
@@ -331,9 +354,7 @@ void main() {
       key: const ValueKey('shot'),
       child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: buildTheme().copyWith(
-        textTheme: buildTheme().textTheme.apply(fontFamily: 'Roboto'),
-      ),
+      theme: buildTheme(),
       home: Scaffold(
         backgroundColor: Tone.bg,
         body: SafeArea(
@@ -349,9 +370,7 @@ void main() {
                           padding: const EdgeInsets.only(left: 12),
                           child: Text(id,
                               style: const TextStyle(
-                                  color: Tone.dim,
-                                  fontSize: 13,
-                                  fontFamily: 'Roboto')),
+                                  color: Tone.dim, fontSize: 13)),
                         ),
                       ),
                       for (final t in ts)
@@ -421,9 +440,7 @@ void main() {
       key: const ValueKey('shot'),
       child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: buildTheme().copyWith(
-        textTheme: buildTheme().textTheme.apply(fontFamily: 'Roboto'),
-      ),
+      theme: buildTheme(),
       home: AppScope(
         notifier: model,
         child: IsoRunnerScreen(block: block, label: 'Morning'),
@@ -446,11 +463,76 @@ void main() {
       key: const ValueKey('shot'),
       child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: buildTheme().copyWith(
-        textTheme: buildTheme().textTheme.apply(fontFamily: 'Roboto'),
-      ),
+      theme: buildTheme(),
       home: AppScope(notifier: m, child: const OnboardingScreen()),
     )));
     await shoot(tester, '12-onboarding');
+  });
+
+  testWidgets('today - an unfinished session waiting to resume', (tester) async {
+    tester.view.physicalSize = _size * 2;
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    final s = phase2State();
+    s.weekStart = ymd(DateTime.now());
+    s.sessions.removeWhere((x) => true);
+    s.inProgress = InProgress(
+      kind: 'hsr',
+      blockId: '',
+      label: 'Session B',
+      phaseId: 'phase2',
+      phaseWeek: 3,
+      startedAt: DateTime.now()
+          .subtract(const Duration(minutes: 25))
+          .toIso8601String(),
+      position: 5,
+      sets: const [
+        SetEntry(
+            exerciseId: 'incline-curl',
+            setIndex: 1,
+            side: 'L',
+            load: 32.5,
+            reps: 12),
+        SetEntry(
+            exerciseId: 'incline-curl',
+            setIndex: 1,
+            side: 'R',
+            load: 27.5,
+            reps: 12),
+        SetEntry(
+            exerciseId: 'incline-curl',
+            setIndex: 2,
+            side: 'L',
+            load: 32.5,
+            reps: 12),
+      ],
+    );
+    await tester.pumpWidget(host(modelWith(s), const TodayScreen()));
+    await shoot(tester, '13-today-resume');
+  });
+
+  testWidgets('edit a logged session', (tester) async {
+    tester.view.physicalSize = _size * 2;
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    final model = modelWith(phase2State());
+    final session = model.state!.sessions.last;
+    await tester.pumpWidget(host(
+      model,
+      Builder(
+        builder: (context) => Center(
+          child: FilledButton(
+            onPressed: () => showEditSession(context, session),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('open'));
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    await shoot(tester, '14-edit-session');
   });
 }

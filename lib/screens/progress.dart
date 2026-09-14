@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../state.dart';
 import '../theme.dart';
+import 'edit_session.dart';
 
 /// The record, in the order it matters: where you are in the block, what the
 /// loads have done, and then the session log itself — which is the table the
@@ -59,7 +60,8 @@ class ProgressScreen extends StatelessWidget {
           const SizedBox(height: 8),
         ],
 
-        const SectionLabel('Session log'),
+        SectionLabel('Session log',
+            trailing: Text('TAP TO EDIT', style: stencil(10))),
         if (sessions.isEmpty)
           const Panel(
             child: Text('Nothing logged yet.',
@@ -297,6 +299,7 @@ class _SessionRow extends StatelessWidget {
 
     return Panel(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      onTap: () => showEditSession(context, session),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -176,6 +176,77 @@ class SessionLog {
       );
 }
 
+/// A session that was started but not finished. Persisted after every set, so
+/// killing the app mid-session — or taking a call during a three-minute rest —
+/// costs you nothing.
+class InProgress {
+  final String kind; // 'iso' | 'hsr'
+  final String blockId;
+  final String label;
+  final String phaseId;
+  final int phaseWeek;
+  final String startedAt;
+
+  /// Where to pick up: the task index for a lifting session, the completed set
+  /// count for an isometric one.
+  final int position;
+  final List<SetEntry> sets;
+
+  const InProgress({
+    required this.kind,
+    required this.blockId,
+    required this.label,
+    required this.phaseId,
+    required this.phaseWeek,
+    required this.startedAt,
+    required this.position,
+    required this.sets,
+  });
+
+  InProgress copyWith({int? position, List<SetEntry>? sets}) => InProgress(
+        kind: kind,
+        blockId: blockId,
+        label: label,
+        phaseId: phaseId,
+        phaseWeek: phaseWeek,
+        startedAt: startedAt,
+        position: position ?? this.position,
+        sets: sets ?? this.sets,
+      );
+
+  /// Stale after a day — resuming yesterday's half-session would put its sets
+  /// on the wrong date and confuse the 72-hour guard.
+  bool isStale(DateTime now) {
+    final t = DateTime.tryParse(startedAt);
+    if (t == null) return true;
+    return now.difference(t).inHours >= 20;
+  }
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'blockId': blockId,
+        'label': label,
+        'phaseId': phaseId,
+        'phaseWeek': phaseWeek,
+        'startedAt': startedAt,
+        'position': position,
+        'sets': sets.map((e) => e.toJson()).toList(),
+      };
+
+  factory InProgress.fromJson(Map j) => InProgress(
+        kind: '${j['kind']}',
+        blockId: '${j['blockId'] ?? ''}',
+        label: '${j['label'] ?? ''}',
+        phaseId: '${j['phaseId'] ?? ''}',
+        phaseWeek: (j['phaseWeek'] as num?)?.toInt() ?? 1,
+        startedAt: '${j['startedAt']}',
+        position: (j['position'] as num?)?.toInt() ?? 0,
+        sets: ((j['sets'] as List?) ?? const [])
+            .map((e) => SetEntry.fromJson(e as Map))
+            .toList(),
+      );
+}
+
 class FlareRecord {
   final String startedOn;
   final String? endedOn;
@@ -274,6 +345,7 @@ class AppState {
   List<SessionLog> sessions;
   List<FlareRecord> flares;
   Reminders reminders;
+  InProgress? inProgress;
 
   AppState({
     required this.programId,
@@ -295,6 +367,7 @@ class AppState {
     List<SessionLog>? sessions,
     List<FlareRecord>? flares,
     Reminders? reminders,
+    this.inProgress,
   })  : startDate = startDate ?? ymd(DateTime.now()),
         weekStart = weekStart ?? ymd(DateTime.now()),
         flareLoads = flareLoads ?? {},
@@ -343,6 +416,7 @@ class AppState {
         'sessions': sessions.map((s) => s.toJson()).toList(),
         'flares': flares.map((f) => f.toJson()).toList(),
         'reminders': reminders.toJson(),
+        'inProgress': inProgress?.toJson(),
       };
 
   factory AppState.fromJson(Map j) => AppState(
@@ -371,6 +445,9 @@ class AppState {
             .map((e) => FlareRecord.fromJson(e as Map))
             .toList(),
         reminders: Reminders.fromJson((j['reminders'] as Map?) ?? const {}),
+        inProgress: j['inProgress'] == null
+            ? null
+            : InProgress.fromJson(j['inProgress'] as Map),
       );
 
   String export() => const JsonEncoder.withIndent('  ').convert(toJson());

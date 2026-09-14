@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../app.dart';
 import '../engine.dart';
 import '../exercise_art.dart';
 import '../program.dart';
+import '../session_hw.dart';
 import '../state.dart';
 import '../theme.dart';
 import 'how_to.dart';
@@ -14,8 +14,9 @@ import 'pain_sheet.dart';
 
 /// Heavy slow resistance. The tempo is the intervention, not a detail: three
 /// seconds up, three seconds down, and a weight you cannot control for three
-/// seconds down is the wrong weight. So the metronome runs the set and the
-/// rep counter follows it.
+/// seconds down is the wrong weight. So the metronome runs the set, the rep
+/// counter follows it, and the cue is audible — you are not looking at the
+/// phone while the weight is moving.
 
 class _Task {
   final Exercise exercise;
@@ -41,7 +42,8 @@ enum _Stage { warmup, ready, lifting, logging, resting, done }
 
 class HsrRunnerScreen extends StatefulWidget {
   final String label;
-  const HsrRunnerScreen({super.key, required this.label});
+  final InProgress? resumeFrom;
+  const HsrRunnerScreen({super.key, required this.label, this.resumeFrom});
 
   @override
   State<HsrRunnerScreen> createState() => _HsrRunnerScreenState();
@@ -49,7 +51,7 @@ class HsrRunnerScreen extends StatefulWidget {
 
 class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
   final List<_Task> _tasks = [];
-  final List<SetEntry> _logged = [];
+  List<SetEntry> _logged = [];
   bool _built = false;
 
   int _index = 0;
@@ -58,22 +60,27 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
   Timer? _timer;
   bool _running = false;
 
-  // Tempo state
   double _phaseLeft = 0;
   bool _goingUp = true;
   int _reps = 0;
 
-  // Rest state
   double _restLeft = 0;
-
   int _loggedReps = 0;
   final Map<String, double> _loadOverride = {};
 
   Tempo _tempo = const Tempo(3, 3);
 
   @override
+  void initState() {
+    super.initState();
+    SessionHw.keepAwake();
+    SessionHw.warmUp();
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
+    SessionHw.letSleep();
     super.dispose();
   }
 
@@ -97,6 +104,13 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
         }
       }
     }
+
+    final r = widget.resumeFrom;
+    if (r != null && _tasks.isNotEmpty) {
+      _logged = List.of(r.sets);
+      _index = r.position.clamp(0, _tasks.length - 1);
+      _stage = _Stage.ready; // the warm-up is behind you
+    }
   }
 
   _Task get task => _tasks[_index];
@@ -105,6 +119,21 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
 
   double _loadOf(_Task t, AppModel model) =>
       _loadOverride[_loadKey(t)] ?? model.state!.loadFor(t.exercise.id, t.side);
+
+  InProgress _snapshot(AppModel model) => InProgress(
+        kind: 'hsr',
+        blockId: '',
+        label: widget.label,
+        phaseId: model.engine!.phase.id,
+        phaseWeek: model.state!.phaseWeek,
+        startedAt:
+            widget.resumeFrom?.startedAt ?? DateTime.now().toIso8601String(),
+        position: _index,
+        sets: _logged,
+      );
+
+  static String _fmt(double v) =>
+      v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
   // ------------------------------------------------------------- tempo loop
 
@@ -115,11 +144,11 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
       _goingUp = true;
       _phaseLeft = _tempo.up.toDouble();
     });
-    HapticFeedback.mediumImpact();
-    _tick(start: true);
+    SessionHw.soft();
+    _tick();
   }
 
-  void _tick({bool start = false}) {
+  void _tick() {
     _timer?.cancel();
     _running = true;
     _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
@@ -129,14 +158,16 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
           if (_goingUp) {
             _goingUp = false;
             _phaseLeft = _tempo.down.toDouble();
-            HapticFeedback.lightImpact();
+            SessionHw.turn();
           } else {
             _reps++;
             _goingUp = true;
             _phaseLeft = _tempo.up.toDouble();
-            HapticFeedback.heavyImpact();
-            SystemSound.play(SystemSoundType.click);
-            if (_reps >= task.targetReps) _endSet();
+            if (_reps >= task.targetReps) {
+              _endSet();
+            } else {
+              SessionHw.rep();
+            }
           }
         }
       });
@@ -155,29 +186,32 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
       _loggedReps = _reps;
       _stage = _Stage.logging;
     });
-    HapticFeedback.heavyImpact();
+    SessionHw.done();
   }
 
-  void _confirmSet(AppModel model) {
-    _logged.add(SetEntry(
-      exerciseId: task.exercise.id,
-      setIndex: task.setIndex,
-      side: task.side,
-      load: _loadOf(task, model),
-      reps: _loggedReps,
-    ));
+  Future<void> _confirmSet(AppModel model) async {
+    _logged = [
+      ..._logged,
+      SetEntry(
+        exerciseId: task.exercise.id,
+        setIndex: task.setIndex,
+        side: task.side,
+        load: _loadOf(task, model),
+        reps: _loggedReps,
+      ),
+    ];
 
-    final last = _index >= _tasks.length - 1;
-    if (last) {
+    if (_index >= _tasks.length - 1) {
       setState(() => _stage = _Stage.done);
+      await model.saveProgress(_snapshot(model));
       return;
     }
 
-    // Rest only after the final side of a set — the other arm's work is not
-    // rest, but going straight from left to right is how the set is done.
+    // Rest only after the final side of a set — going straight from left to
+    // right is how the set is done; that is not rest.
     final next = _tasks[_index + 1];
-    final sameSet = next.exercise.id == task.exercise.id &&
-        next.setIndex == task.setIndex;
+    final sameSet =
+        next.exercise.id == task.exercise.id && next.setIndex == task.setIndex;
 
     setState(() {
       _index++;
@@ -189,6 +223,9 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
         _startRest();
       }
     });
+
+    // Persisted after every set, so a phone call or a crash costs nothing.
+    await model.saveProgress(_snapshot(model));
   }
 
   void _startRest() {
@@ -201,31 +238,14 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
           _timer?.cancel();
           _running = false;
           _stage = _Stage.ready;
-          HapticFeedback.heavyImpact();
-          SystemSound.play(SystemSoundType.click);
+          SessionHw.done();
         }
       });
     });
   }
 
-  void _openHowTo(AppModel model, Prescribed p) {
-    final b = model.engine!.loadBlock;
-    showHowTo(
-      context,
-      movementId: p.exercise.id,
-      title: p.exercise.title,
-      steps: p.exercise.howTo,
-      note: p.exercise.note,
-      cue: p.cue,
-      upSeconds: _tempo.up,
-      downSeconds: _tempo.down,
-      scheme: b == null ? null : '${b.scheme} at your ${b.target}',
-    );
-  }
-
   Future<void> _finish(AppModel model) async {
-    final sides = model.program!.sides;
-    final pain = await showPainSheet(context, sides);
+    final pain = await showPainSheet(context, model.program!.sides);
     if (pain == null) return;
     final now = DateTime.now();
     await model.finishSession(SessionLog(
@@ -241,6 +261,21 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
       sets: List.of(_logged),
     ));
     if (mounted) Navigator.pop(context);
+  }
+
+  void _openHowTo(AppModel model, Prescribed p) {
+    final b = model.engine!.loadBlock;
+    showHowTo(
+      context,
+      movementId: p.exercise.id,
+      title: p.exercise.title,
+      steps: p.exercise.howTo,
+      note: p.exercise.note,
+      cue: p.cue,
+      upSeconds: _tempo.up,
+      downSeconds: _tempo.down,
+      scheme: b == null ? null : '${b.scheme} at your ${b.target}',
+    );
   }
 
   // ------------------------------------------------------------------- view
@@ -260,13 +295,22 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.label),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: LinearProgressIndicator(
+            value: _stage == _Stage.warmup ? 0 : _index / _tasks.length,
+            minHeight: 2,
+            backgroundColor: Tone.lineSoft,
+            valueColor: const AlwaysStoppedAnimation(Tone.action),
+          ),
+        ),
         actions: [
           if (_stage != _Stage.warmup && _stage != _Stage.done)
             Padding(
-              padding: const EdgeInsets.only(right: 14),
+              padding: const EdgeInsets.only(right: 16),
               child: Center(
                 child: Text('${_index + 1}/${_tasks.length}',
-                    style: const TextStyle(color: Tone.dim, fontSize: 13)),
+                    style: display(16, color: Tone.dim)),
               ),
             ),
         ],
@@ -282,7 +326,7 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
   Widget _warmup(AppModel model) {
     final phase = model.engine!.phase;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
       children: [
         const SectionLabel('Warm-up'),
         Panel(
@@ -291,16 +335,15 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
             children: [
               for (var i = 0; i < phase.warmup.length; i++)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 11),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${i + 1}. ',
-                          style: const TextStyle(
-                              color: Tone.faint, fontWeight: FontWeight.w700)),
+                      Text('${i + 1}', style: display(16, color: Tone.faint)),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(phase.warmup[i],
-                            style: const TextStyle(height: 1.4, fontSize: 14)),
+                            style: const TextStyle(height: 1.45)),
                       ),
                     ],
                   ),
@@ -309,73 +352,65 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        const SectionLabel('Today'),
-        Panel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final p in model.engine!.prescription()) ...[
-                InkWell(
-                  onTap: () => _openHowTo(model, p),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Row(
-                    children: [
-                      MovementThumb(movementId: p.exercise.id),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        const SectionLabel('The work'),
+        for (final p in model.engine!.prescription())
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Panel(
+              onTap: () => _openHowTo(model, p),
+              padding: const EdgeInsets.all(13),
+              child: Row(
+                children: [
+                  MovementThumb(movementId: p.exercise.id, size: 50),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.exercise.title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 15)),
+                        const SizedBox(height: 5),
+                        Row(
                           children: [
-                            Text(p.exercise.title,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700)),
-                            Text('${p.sets} x ${p.reps}',
-                                style: const TextStyle(
-                                    color: Tone.dim, fontSize: 13)),
+                            Text('${p.sets}x${p.reps}',
+                                style: display(19, color: Tone.dim)),
+                            const SizedBox(width: 12),
+                            for (final side in p.sides) ...[
+                              if (side != 'BOTH') ...[
+                                SideChip(side, size: 19),
+                                const SizedBox(width: 5),
+                              ],
+                              Text(_fmt(p.loads[side] ?? 0),
+                                  style: display(19)),
+                              const SizedBox(width: 12),
+                            ],
                           ],
                         ),
-                      ),
-                      HowToButton(onTap: () => _openHowTo(model, p)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (final side in p.sides) ...[
-                      if (side == 'BOTH')
-                        Text('${p.loads[side]?.toStringAsFixed(1) ?? '—'} ${p.exercise.unit}',
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700))
-                      else ...[
-                        SideChip(side, size: 20),
-                        const SizedBox(width: 6),
-                        Text(p.loads[side]?.toStringAsFixed(1) ?? '—',
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700)),
-                        const SizedBox(width: 14),
+                        if (p.cue != null) ...[
+                          const SizedBox(height: 4),
+                          Text(p.cue!,
+                              style: const TextStyle(
+                                  color: Tone.accent, fontSize: 12.5)),
+                        ],
                       ],
-                    ],
-                  ],
-                ),
-                if (p.cue != null) ...[
-                  const SizedBox(height: 4),
-                  Text(p.cue!,
-                      style: const TextStyle(color: Tone.accent, fontSize: 12.5)),
+                    ),
+                  ),
+                  const Icon(Icons.help_outline, size: 19, color: Tone.faint),
                 ],
-                const SizedBox(height: 14),
-              ],
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              Text(model.engine!.phase.tempoNote,
-                  style: const TextStyle(
-                      color: Tone.dim, fontSize: 12.5, height: 1.45)),
-            ],
+              ),
+            ),
           ),
-        ),
+        const SizedBox(height: 6),
+        Text(phase.tempoNote,
+            style: const TextStyle(
+                color: Tone.faint, fontSize: 12.5, height: 1.45)),
         const SizedBox(height: 20),
         FilledButton(
-          onPressed: () => setState(() => _stage = _Stage.ready),
+          onPressed: () async {
+            setState(() => _stage = _Stage.ready);
+            await model.beginSession(_snapshot(model));
+          },
           child: const Text('Warm-up done — start'),
         ),
       ],
@@ -385,14 +420,14 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
   Widget _work(AppModel model) {
     final t = task;
     final load = _loadOf(t, model);
-    final unit = t.exercise.unit;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
       child: Column(
         children: [
           Panel(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            rail: t.side == 'BOTH' ? Tone.dim : Tone.side(t.side),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -401,147 +436,153 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
                     Expanded(
                       child: Text(t.exercise.title,
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
+                              fontSize: 15.5, fontWeight: FontWeight.w600)),
                     ),
                     if (t.side != 'BOTH') SideChip(t.side, size: 24),
                     const SizedBox(width: 8),
                     HowToButton(
                       size: 28,
                       onTap: () {
-                        final pres = model.engine!.prescription().firstWhere(
-                            (x) => x.exercise.id == t.exercise.id);
+                        final pres = model.engine!
+                            .prescription()
+                            .firstWhere((x) => x.exercise.id == t.exercise.id);
                         _openHowTo(model, pres);
                       },
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text('Set ${t.setIndex} of ${t.totalSets} · target ${t.targetReps} reps',
+                const SizedBox(height: 2),
+                Text(
+                    'Set ${t.setIndex} of ${t.totalSets} · target ${t.targetReps} reps',
                     style: const TextStyle(color: Tone.dim, fontSize: 13)),
                 if (t.cue != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(t.cue!,
                       style:
                           const TextStyle(color: Tone.accent, fontSize: 12.5)),
                 ],
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    IconButton(
-                      onPressed: _stage == _Stage.lifting
+                    _Nudge(
+                      icon: Icons.remove,
+                      onTap: _stage == _Stage.lifting
                           ? null
                           : () => setState(() => _loadOverride[_loadKey(t)] =
                               (load - 2.5).clamp(0, 999)),
-                      icon: const Icon(Icons.remove_circle_outline),
-                      color: Tone.dim,
                     ),
                     Expanded(
                       child: Center(
-                        child: Text(
-                          '${load.toStringAsFixed(load % 1 == 0 ? 0 : 1)} $unit',
-                          style: const TextStyle(
-                              fontSize: 30, fontWeight: FontWeight.w800),
+                        child: Readout(
+                          label: 'load',
+                          value: _fmt(load),
+                          unit: t.exercise.unit,
+                          size: 42,
+                          align: CrossAxisAlignment.center,
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: _stage == _Stage.lifting
+                    _Nudge(
+                      icon: Icons.add,
+                      onTap: _stage == _Stage.lifting
                           ? null
-                          : () => setState(() =>
-                              _loadOverride[_loadKey(t)] = load + 2.5),
-                      icon: const Icon(Icons.add_circle_outline),
-                      color: Tone.dim,
+                          : () => setState(
+                              () => _loadOverride[_loadKey(t)] = load + 2.5),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-
-          Expanded(child: Center(child: _centre(model))),
-
-          if (_stage == _Stage.ready)
-            FilledButton(onPressed: _startSet, child: const Text('Start set'))
-          else if (_stage == _Stage.lifting)
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _running ? _pause() : _tick(),
-                    child: Text(_running ? 'Pause' : 'Resume'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _endSet,
-                    child: const Text('End set'),
-                  ),
-                ),
-              ],
-            )
-          else if (_stage == _Stage.logging)
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      onPressed: () => setState(
-                          () => _loggedReps = (_loggedReps - 1).clamp(0, 99)),
-                      icon: const Icon(Icons.remove_circle_outline, size: 30),
-                      color: Tone.dim,
-                    ),
-                    const SizedBox(width: 8),
-                    Column(children: [
-                      Text('$_loggedReps',
-                          style: const TextStyle(
-                              fontSize: 40, fontWeight: FontWeight.w800)),
-                      const Text('reps',
-                          style: TextStyle(color: Tone.faint, fontSize: 12)),
-                    ]),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () => setState(() => _loggedReps++),
-                      icon: const Icon(Icons.add_circle_outline, size: 30),
-                      color: Tone.dim,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                FilledButton(
-                  onPressed: () => _confirmSet(model),
-                  child: const Text('Log set'),
-                ),
-              ],
-            )
-          else if (_stage == _Stage.resting)
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => setState(() => _restLeft += 30),
-                    child: const Text('+30s'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () {
-                      _timer?.cancel();
-                      setState(() => _stage = _Stage.ready);
-                    },
-                    child: const Text('Skip rest'),
-                  ),
-                ),
-              ],
-            ),
+          Expanded(child: Center(child: _centre())),
+          _controls(model),
         ],
       ),
     );
   }
 
-  Widget _centre(AppModel model) {
+  Widget _controls(AppModel model) {
+    switch (_stage) {
+      case _Stage.ready:
+        return FilledButton(
+            onPressed: _startSet, child: const Text('Start set'));
+      case _Stage.lifting:
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _running ? _pause() : _tick(),
+                child: Text(_running ? 'Pause' : 'Resume'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton(
+                  onPressed: _endSet, child: const Text('End set')),
+            ),
+          ],
+        );
+      case _Stage.logging:
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _Nudge(
+                  icon: Icons.remove,
+                  big: true,
+                  onTap: () => setState(
+                      () => _loggedReps = (_loggedReps - 1).clamp(0, 99)),
+                ),
+                const SizedBox(width: 20),
+                Readout(
+                  label: 'reps done',
+                  value: '$_loggedReps',
+                  size: 46,
+                  align: CrossAxisAlignment.center,
+                ),
+                const SizedBox(width: 20),
+                _Nudge(
+                  icon: Icons.add,
+                  big: true,
+                  onTap: () => setState(() => _loggedReps++),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => _confirmSet(model),
+              child: const Text('Log set'),
+            ),
+          ],
+        );
+      case _Stage.resting:
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => setState(() => _restLeft += 30),
+                child: const Text('+30s'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: () {
+                  _timer?.cancel();
+                  setState(() => _stage = _Stage.ready);
+                },
+                child: const Text('Skip rest'),
+              ),
+            ),
+          ],
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _centre() {
     switch (_stage) {
       case _Stage.lifting:
         final total = (_goingUp ? _tempo.up : _tempo.down).toDouble();
@@ -551,23 +592,28 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('$_reps',
-                style: const TextStyle(
-                    fontSize: 92, fontWeight: FontWeight.w200, height: 1)),
-            Text('of ${task.targetReps} reps',
-                style: const TextStyle(color: Tone.faint, fontSize: 13)),
-            const SizedBox(height: 30),
-            // A bar that rises for three seconds and falls for three. Watch
-            // the bar, not the clock.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('$_reps', style: display(92)),
+                Text(' / ${task.targetReps}',
+                    style: display(28, color: Tone.faint)),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Watch the bar, not the clock: it rises for three seconds and
+            // falls for three.
             SizedBox(
-              height: 150,
-              width: 90,
+              height: 126,
+              width: 82,
               child: Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: Tone.surfaceHi,
+                      color: Tone.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Tone.line),
                     ),
@@ -576,7 +622,7 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
                     heightFactor: fill.clamp(0.02, 1.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.85),
+                        color: color,
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
@@ -584,15 +630,18 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(_goingUp ? 'UP' : 'DOWN',
                 style: TextStyle(
+                    fontFamily: kDisplay,
                     color: color,
                     fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 3)),
+                    height: 1,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 4)),
+            const SizedBox(height: 3),
             Text('${_phaseLeft.ceil()}s',
-                style: const TextStyle(color: Tone.dim, fontSize: 15)),
+                style: const TextStyle(color: Tone.dim, fontSize: 14)),
           ],
         );
 
@@ -602,21 +651,16 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('REST',
-                style: TextStyle(
-                    color: Tone.accent,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2)),
+            Text('REST', style: stencil(13, color: Tone.dim)),
             const SizedBox(height: 8),
-            Text('$m:$s',
-                style: const TextStyle(
-                    fontSize: 76,
-                    fontWeight: FontWeight.w200,
-                    fontFeatures: [FontFeature.tabularFigures()])),
-            const SizedBox(height: 8),
+            Text('$m:$s', style: display(84)),
+            const SizedBox(height: 14),
             Text('Next: ${task.exercise.title}',
-                style: const TextStyle(color: Tone.dim, fontSize: 13)),
+                style: const TextStyle(color: Tone.dim, fontSize: 13.5)),
+            if (task.side != 'BOTH') ...[
+              const SizedBox(height: 8),
+              SideChip(task.side, size: 24),
+            ],
           ],
         );
 
@@ -625,7 +669,7 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.check_circle_outline, color: Tone.good, size: 54),
-            SizedBox(height: 10),
+            SizedBox(height: 12),
             Text('Set done', style: TextStyle(fontSize: 17)),
             SizedBox(height: 4),
             Text('Adjust if you stopped early or squeezed one more out.',
@@ -638,11 +682,15 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('${_tempo.up}s up · ${_tempo.down}s down',
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text('${task.targetReps} reps is ${task.targetReps * _tempo.repSeconds} seconds under tension',
-                style: const TextStyle(color: Tone.dim, fontSize: 13)),
+            MovementThumb(movementId: task.exercise.id, size: 118),
+            const SizedBox(height: 18),
+            Text('${_tempo.up}S UP  ·  ${_tempo.down}S DOWN',
+                style: stencil(14, color: Tone.dim)),
+            const SizedBox(height: 6),
+            Text(
+              '${task.targetReps} reps is ${task.targetReps * _tempo.repSeconds} seconds under tension',
+              style: const TextStyle(color: Tone.faint, fontSize: 13),
+            ),
           ],
         );
     }
@@ -654,15 +702,12 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
       (byEx[s.exerciseId] ??= []).add(s);
     }
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       children: [
-        const Icon(Icons.check_circle, color: Tone.good, size: 48),
-        const SizedBox(height: 12),
-        const Center(
-          child: Text('Session complete',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        ),
-        const SizedBox(height: 20),
+        const Icon(Icons.check_circle, color: Tone.good, size: 46),
+        const SizedBox(height: 10),
+        Center(child: Text('SESSION COMPLETE', style: display(30))),
+        const SizedBox(height: 22),
         for (final entry in byEx.entries) ...[
           Panel(
             child: Column(
@@ -672,22 +717,20 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
                   model.engine!.phase.exercises
                       .firstWhere((e) => e.id == entry.key)
                       .title,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 9),
                 for (final s in entry.value)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 5),
                     child: Row(children: [
                       SizedBox(
-                          width: 46,
-                          child: Text('Set ${s.setIndex}',
-                              style: const TextStyle(
-                                  color: Tone.faint, fontSize: 12.5))),
+                          width: 28,
+                          child: Text('${s.setIndex}',
+                              style: display(16, color: Tone.faint))),
                       if (s.side != 'BOTH') SideChip(s.side, size: 18),
                       const SizedBox(width: 8),
-                      Text('${s.load.toStringAsFixed(s.load % 1 == 0 ? 0 : 1)} lb',
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('${_fmt(s.load)} lb', style: display(18)),
                       const Spacer(),
                       Text('${s.reps} reps',
                           style: const TextStyle(color: Tone.dim)),
@@ -696,21 +739,48 @@ class _HsrRunnerScreenState extends State<HsrRunnerScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
         ],
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Tone.good),
           onPressed: () => _finish(model),
           child: const Text('Log the session'),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         const Text(
           'The week is decided by tomorrow morning, not by this screen.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Tone.faint, fontSize: 12),
+          style: TextStyle(color: Tone.faint, fontSize: 12.5),
         ),
       ],
+    );
+  }
+}
+
+class _Nudge extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool big;
+  const _Nudge({required this.icon, this.onTap, this.big = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final d = big ? 52.0 : 44.0;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(d),
+      child: Container(
+        width: d,
+        height: d,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Tone.surfaceHi,
+          border: Border.all(color: Tone.line),
+        ),
+        child: Icon(icon,
+            size: big ? 26 : 21,
+            color: onTap == null ? Tone.faint : Tone.text),
+      ),
     );
   }
 }

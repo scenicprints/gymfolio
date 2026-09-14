@@ -486,4 +486,218 @@ void main() {
       expect(round.loadFor('incline-curl', 'R'), 25);
     });
   });
+
+  group('session resume', () {
+    test('an in-progress session is offered back, and cleared on finish', () {
+      final ctx = atPhase2();
+      final now = DateTime(2026, 1, 5, 18);
+      ctx.e.beginSession(InProgress(
+        kind: 'hsr',
+        blockId: '',
+        label: 'Session A',
+        phaseId: 'phase2',
+        phaseWeek: 1,
+        startedAt: now.toIso8601String(),
+        position: 3,
+        sets: const [
+          SetEntry(
+              exerciseId: 'incline-curl',
+              setIndex: 1,
+              side: 'L',
+              load: 30,
+              reps: 15),
+        ],
+      ));
+
+      final r = ctx.e.resumable(now.add(const Duration(minutes: 20)));
+      expect(r, isNotNull);
+      expect(r!.position, 3);
+      expect(r.sets.single.reps, 15);
+
+      ctx.e.completeSession(hsr(now, 'Session A', ctx.s));
+      expect(ctx.s.inProgress, isNull);
+    });
+
+    test('yesterday\'s half-session is not offered back', () {
+      final ctx = atPhase2();
+      final started = DateTime(2026, 1, 5, 18);
+      ctx.e.beginSession(InProgress(
+        kind: 'hsr',
+        blockId: '',
+        label: 'Session A',
+        phaseId: 'phase2',
+        phaseWeek: 1,
+        startedAt: started.toIso8601String(),
+        position: 2,
+        sets: const [],
+      ));
+      // Resuming it the next day would date its sets wrong and confuse the
+      // 72-hour guard.
+      expect(ctx.e.resumable(started.add(const Duration(hours: 21))), isNull);
+      expect(ctx.e.resumable(started.add(const Duration(hours: 3))), isNotNull);
+    });
+
+    test('an abandoned session leaves no trace', () {
+      final ctx = atPhase2();
+      final now = DateTime(2026, 1, 5, 18);
+      ctx.e.beginSession(InProgress(
+        kind: 'iso',
+        blockId: 'iso-flexion',
+        label: 'Morning',
+        phaseId: 'phase1',
+        phaseWeek: 1,
+        startedAt: now.toIso8601String(),
+        position: 2,
+        sets: const [],
+      ));
+      ctx.e.abandonSession();
+      expect(ctx.e.resumable(now), isNull);
+      expect(ctx.s.sessions, isEmpty);
+    });
+
+    test('in-progress survives a JSON round trip', () {
+      final ctx = atPhase2();
+      ctx.e.beginSession(InProgress(
+        kind: 'hsr',
+        blockId: '',
+        label: 'Session B',
+        phaseId: 'phase2',
+        phaseWeek: 1,
+        startedAt: DateTime(2026, 1, 5, 18).toIso8601String(),
+        position: 5,
+        sets: const [
+          SetEntry(
+              exerciseId: 'bar-curl',
+              setIndex: 2,
+              side: 'BOTH',
+              load: 45,
+              reps: 15),
+        ],
+      ));
+      final round =
+          AppState.fromJson(json.decode(json.encode(ctx.s.toJson())) as Map);
+      expect(round.inProgress, isNotNull);
+      expect(round.inProgress!.position, 5);
+      expect(round.inProgress!.sets.single.side, 'BOTH');
+    });
+  });
+
+  group('editing the log', () {
+    test('a corrected pain score changes the Phase 1 gate', () {
+      final p = loadProgram();
+      final today = DateTime(2026, 1, 19);
+      final s = AppState(
+          programId: p.id, onboarded: true, phaseId: 'phase1', phaseWeek: 2);
+      final e = Engine(p, s);
+      for (var i = 0; i < 5; i++) {
+        final day = today.subtract(Duration(days: i));
+        s.checkIns.add(morning(day, l: Verdict.better, r: Verdict.same));
+        s.sessions.add(SessionLog(
+          id: 'iso$i',
+          date: d(day),
+          at: day.toIso8601String(),
+          phaseId: 'phase1',
+          phaseWeek: 2,
+          kind: 'iso',
+          blockId: 'iso-flexion',
+          label: 'Morning',
+          painDuring: {'L': 2, 'R': i == 0 ? 8 : 2},
+          sets: const [],
+        ));
+      }
+      expect(e.phase1Ready(today), isFalse, reason: 'an 8/10 hold blocks it');
+
+      // That 8 was a fat finger; it was a 2.
+      final wrong = s.sessions.firstWhere((x) => x.id == 'iso0');
+      e.updateSession(SessionLog(
+        id: wrong.id,
+        date: wrong.date,
+        at: wrong.at,
+        phaseId: wrong.phaseId,
+        phaseWeek: wrong.phaseWeek,
+        kind: wrong.kind,
+        blockId: wrong.blockId,
+        label: wrong.label,
+        painDuring: const {'L': 2, 'R': 2},
+        sets: const [],
+      ));
+      expect(e.phase1Ready(today), isTrue);
+    });
+
+    test('editing a set updates the load history', () {
+      final ctx = atPhase2();
+      final now = DateTime(2026, 1, 5, 18);
+      final s = SessionLog(
+        id: 'x',
+        date: d(now),
+        at: now.toIso8601String(),
+        phaseId: 'phase2',
+        phaseWeek: 1,
+        kind: 'hsr',
+        blockId: '',
+        label: 'Session A',
+        painDuring: const {'L': 3, 'R': 3},
+        sets: const [
+          SetEntry(
+              exerciseId: 'incline-curl',
+              setIndex: 1,
+              side: 'L',
+              load: 300,
+              reps: 15),
+        ],
+      );
+      ctx.e.completeSession(s);
+      expect(ctx.e.loadHistory('incline-curl', 'L').single.load, 300);
+
+      ctx.e.updateSession(SessionLog(
+        id: s.id,
+        date: s.date,
+        at: s.at,
+        phaseId: s.phaseId,
+        phaseWeek: s.phaseWeek,
+        kind: s.kind,
+        blockId: s.blockId,
+        label: s.label,
+        painDuring: s.painDuring,
+        sets: const [
+          SetEntry(
+              exerciseId: 'incline-curl',
+              setIndex: 1,
+              side: 'L',
+              load: 30,
+              reps: 15),
+        ],
+      ));
+      expect(ctx.e.loadHistory('incline-curl', 'L').single.load, 30);
+    });
+
+    test('deleting a session takes it out of the week count', () {
+      final ctx = atPhase2();
+      var t = DateTime(2026, 1, 5, 18);
+      for (var i = 0; i < 2; i++) {
+        ctx.e.completeSession(hsr(t, 'S$i', ctx.s));
+        t = t.add(const Duration(hours: 73));
+      }
+      expect(ctx.e.sessionsThisWeek.length, 2);
+      ctx.e.deleteSession(ctx.s.sessions.first.id);
+      expect(ctx.e.sessionsThisWeek.length, 1);
+      expect(ctx.s.sessions.length, 1);
+    });
+
+    test('editing does not rewind a week already earned', () {
+      final ctx = atPhase2();
+      var t = DateTime(2026, 1, 5, 18);
+      for (var i = 0; i < 3; i++) {
+        ctx.e.completeSession(hsr(t, 'S$i', ctx.s));
+        ctx.e.applyCheckIn(morning(t.add(const Duration(days: 1))));
+        t = t.add(const Duration(hours: 73));
+      }
+      expect(ctx.s.phaseWeek, 2);
+      final loadBefore = ctx.s.loadFor('incline-curl', 'L');
+
+      ctx.e.deleteSession(ctx.s.sessions.first.id);
+      expect(ctx.s.phaseWeek, 2, reason: 'the week you were given, you keep');
+      expect(ctx.s.loadFor('incline-curl', 'L'), loadBefore);
+    });
+  });
 }

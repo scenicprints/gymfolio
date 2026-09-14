@@ -49,12 +49,14 @@ lib/
   theme.dart        palette (`Tone`) and the shared Panel / SideChip widgets
   exercise_art.dart the movement figures — CustomPainter per view, animated
                     at the real tempo; `simplified` for thumbnails
+  session_hw.dart   wake lock + audible tempo cues, both fully guarded
   screens/          today, checkin, iso_runner, hsr_runner, calibrate,
-                    progress, program_view, settings, onboarding, pain_sheet
+                    progress, program_view, settings, onboarding, pain_sheet,
+                    how_to, edit_session
 assets/programs/biceps_tendinopathy.json   the program document
 tool/prepare_android.sh                    regenerates + patches android/
 tool/make_icon.py                          draws the launcher icon
-test/engine_test.dart                      25 tests over the decision rules
+test/engine_test.dart                      33 tests over the decision rules
 test/shots_test.dart                       renders every screen to build/shots/
 ```
 
@@ -153,20 +155,56 @@ repo; keep it that way and never rotate it.
 - **"Before starting" removed** from onboarding, along with its state field and
   the Settings line that reported it.
 
-### Next — v0.3.0 (nothing started)
+### Shipped — v0.3.0
 
-- [ ] **Session resume.** Kill the app mid-session and the sets logged so far
-      are gone. Persist an in-progress session and offer to resume.
-- [ ] **Wake lock during a session.** The screen sleeps during a 3-minute rest.
-- [ ] **Sound, not just the system click.** The tempo cue needs to be audible
-      over a gym; `SystemSound.click` may not cut it. Bundle a short tick.
-- [ ] **Edit a logged session.** Wrong reps or a mistyped pain score currently
-      cannot be corrected, and pain feeds the Phase 1 gate.
+**The visual overhaul.** The app now looks like an instrument panel rather than
+a card feed.
+
+- **Type.** Barlow and Barlow Condensed, bundled (SIL OFL,
+  `assets/fonts/OFL.txt`) rather than fetched, because the app has to look the
+  same in a basement gym with no signal. Numbers are the content, so numbers
+  get the condensed display face with tabular figures: `display()` for
+  readouts, `stencil()` for the small-caps engraving on the panel.
+- **Colour, with one load-bearing rule.** Blue is the left arm and coral is the
+  right arm, *everywhere*, and nothing else may use them. That is why the
+  primary action is near-white on near-black — a blue button would quietly mean
+  "left" on a screen where left and right are the whole story.
+- **New primitives** in `theme.dart`: `Readout` (the caption/number/unit
+  cluster), `Pill`, and `Panel(rail:)` — a coloured edge that marks a card which
+  *means* something (amber = unfinished, red = flare or stop, green = earned).
+- **Today** opens with a readout strip — scheme, rest, tempo, target — so the
+  shape of the week is legible before you read a word.
+
+**Session resume.** An in-progress session is persisted after every logged set
+(`InProgress` in `state.dart`). Today offers Resume or Discard. A half-session
+older than 20 hours is not offered back: resuming yesterday's would date its
+sets wrong and confuse the 72-hour guard.
+
+**Wake lock and sound** (`session_hw.dart`). The screen stays on through a
+three-minute rest. The tempo cue is now audible — three generated WAVs
+(`tool/make_icon.py`'s sibling logic; see `assets/sound/`): a sharp tick on the
+rep, a lower tone on the turnaround so up and down are distinguishable without
+looking, and a two-note chime at the end of a set or rest. Both subsystems are
+guarded and switchable off with `SessionHw.enabled = false`.
+
+**Editing a logged session.** Tap any row in the session log. Pain per arm,
+load and reps per set, a note, or delete. Pain feeds the Phase 1 gate, so a
+mistyped score is not cosmetic. Editing deliberately does **not** rewind a week
+already earned — only the week in progress is re-evaluated, and the sheet says
+so.
+
+Engine tests: 33.
+
+### Next — v0.4.0 (nothing started)
+
 - [ ] **Physio export.** A readable one-page summary (the program's own
       tracking-log table) rather than raw JSON.
 - [ ] **Backup that survives the phone.** Export is manual today. Consider a
       private `gymfolio-data` repo, matching the pattern used by bodycomp and
       fuelwise.
+- [ ] **Edit a check-in**, not just a session.
+- [ ] **A volume control for the cues**, and a mute toggle in Settings —
+      `SessionHw.muted` exists but nothing sets it.
 
 ### Later
 

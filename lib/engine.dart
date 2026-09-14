@@ -410,8 +410,43 @@ class Engine {
   void completeSession(SessionLog s) {
     state.sessions.add(s);
     state.sessions.sort((a, b) => a.at.compareTo(b.at));
+    state.inProgress = null;
     if (s.kind == 'hsr') _stepRebuild();
     _evaluateWeek(s.date);
+  }
+
+  /// Correct a logged session. Pain feeds the Phase 1 gate and the loads feed
+  /// the progress chart, so a mistyped number is worth being able to fix.
+  ///
+  /// Deliberately does NOT rewind weeks already earned — the week you were
+  /// given, you keep. It re-evaluates the current week only.
+  void updateSession(SessionLog updated) {
+    final i = state.sessions.indexWhere((x) => x.id == updated.id);
+    if (i < 0) return;
+    state.sessions[i] = updated;
+    state.sessions.sort((a, b) => a.at.compareTo(b.at));
+    _evaluateWeek(ymd(DateTime.now()));
+  }
+
+  void deleteSession(String id) {
+    state.sessions.removeWhere((x) => x.id == id);
+    _evaluateWeek(ymd(DateTime.now()));
+  }
+
+  // ------------------------------------------------------- session resume
+
+  void beginSession(InProgress p) => state.inProgress = p;
+
+  void updateProgress(InProgress p) => state.inProgress = p;
+
+  void abandonSession() => state.inProgress = null;
+
+  /// The half-finished session worth offering to resume, if there is one.
+  InProgress? resumable(DateTime now) {
+    final p = state.inProgress;
+    if (p == null) return null;
+    if (p.isStale(now)) return null;
+    return p;
   }
 
   /// Walk the load back up toward where it was before the flare, one session

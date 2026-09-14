@@ -44,6 +44,31 @@ The demo widget animates at the movement's real tempo. Isometrics are passed a
 zero tempo — guard any division by the up/down total, or you get a NaN curve
 assertion at runtime.
 
+## Look and feel
+
+`theme.dart` is the whole design system. Use `display()` for numbers,
+`stencil()` for small-caps labels, and the `Readout` / `Pill` / `Panel(rail:)`
+primitives rather than rolling one-off styles.
+
+**The colour rule is not decorative:** blue means the left arm and coral means
+the right arm, everywhere. Do not use either for anything else — that is why
+the primary action is near-white. If you need a new highlight, take it from the
+semantic set (good / hold / bad) or `accent`.
+
+Fonts are bundled from `assets/fonts` under the SIL OFL. Keep `OFL.txt` with
+them.
+
+## Session hardware
+
+`session_hw.dart` owns the wake lock and the audio cues. Two things to know:
+
+- **Everything is guarded and lazy.** Constructing an `AudioPlayer` eagerly
+  spins up the plugin's global scope, which throws where there is no platform
+  side — widget tests most obviously — *before* any try/catch can help. Keep
+  the players behind `_prepare()`.
+- **`SessionHw.enabled = false`** turns the whole subsystem into a no-op. The
+  shot harness sets it; so should anything else without a platform side.
+
 ## Android
 
 `android/` and `web/` are **generated and gitignored**. Recreate with:

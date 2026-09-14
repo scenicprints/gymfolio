@@ -87,6 +87,32 @@ class AppModel extends ChangeNotifier {
     await persist();
   }
 
+  Future<void> editSession(SessionLog s) async {
+    engine!.updateSession(s);
+    await persist();
+  }
+
+  Future<void> removeSession(String id) async {
+    engine!.deleteSession(id);
+    await persist();
+  }
+
+  Future<void> beginSession(InProgress p) async {
+    engine!.beginSession(p);
+    await persist();
+  }
+
+  /// Called after every logged set. Saves without a full notify storm.
+  Future<void> saveProgress(InProgress p) async {
+    engine!.updateProgress(p);
+    await store.save(state!);
+  }
+
+  Future<void> abandonSession() async {
+    engine!.abandonSession();
+    await persist();
+  }
+
   Future<void> confirmBaselineDown(bool v) async {
     state!.baselineDownConfirmed = v;
     await persist();
